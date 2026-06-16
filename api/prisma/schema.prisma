@@ -1,0 +1,261 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// MULTIEMPRESA
+// ==========================================
+
+model Empresa {
+  id            Int       @id @default(autoincrement())
+  nombre        String
+  nit           String    @unique
+  email         String
+  telefono      String?
+  direccion     String?
+  logo          String?
+  activo        Boolean   @default(true)
+  creadoEn      DateTime  @default(now())
+  actualizadoEn DateTime  @updatedAt
+
+  usuarios   Usuario[]
+  sucursales Sucursal[]
+  categorias Categoria[]
+  productos  Producto[]
+  clientes   Cliente[]
+
+  @@map("empresas")
+}
+
+model Sucursal {
+  id        Int      @id @default(autoincrement())
+  empresaId Int
+  nombre    String
+  direccion String?
+  telefono  String?
+  activo    Boolean  @default(true)
+  creadoEn  DateTime @default(now())
+
+  empresa  Empresa   @relation(fields: [empresaId], references: [id])
+  usuarios Usuario[]
+  pedidos  Pedido[]
+  cajas    Caja[]
+
+  @@map("sucursales")
+}
+
+// ==========================================
+// USUARIOS Y ROLES
+// ==========================================
+
+enum RolUsuario {
+  SUPERADMIN
+  ADMIN_EMPRESA
+  GERENTE
+  CAJERO
+  COCINERO
+  DOMICILIARIO
+}
+
+model Usuario {
+  id            Int        @id @default(autoincrement())
+  empresaId     Int?
+  sucursalId    Int?
+  nombre        String
+  email         String     @unique
+  password      String
+  rol           RolUsuario
+  activo        Boolean    @default(true)
+  creadoEn      DateTime   @default(now())
+  actualizadoEn DateTime   @updatedAt
+
+  empresa  Empresa?  @relation(fields: [empresaId], references: [id])
+  sucursal Sucursal? @relation(fields: [sucursalId], references: [id])
+  pedidos  Pedido[]
+  cajas    Caja[]
+
+  @@map("usuarios")
+}
+
+// ==========================================
+// PRODUCTOS Y CATEGORIAS
+// ==========================================
+
+model Categoria {
+  id          Int      @id @default(autoincrement())
+  empresaId   Int
+  nombre      String
+  descripcion String?
+  icono       String?
+  color       String?
+  activo      Boolean  @default(true)
+  creadoEn    DateTime @default(now())
+
+  empresa   Empresa    @relation(fields: [empresaId], references: [id])
+  productos Producto[]
+
+  @@map("categorias")
+}
+
+model Producto {
+  id            Int      @id @default(autoincrement())
+  empresaId     Int
+  categoriaId   Int
+  nombre        String
+  descripcion   String?
+  precio        Decimal  @db.Decimal(10, 2)
+  imagen        String?
+  disponible    Boolean  @default(true)
+  activo        Boolean  @default(true)
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  empresa        Empresa               @relation(fields: [empresaId], references: [id])
+  categoria      Categoria             @relation(fields: [categoriaId], references: [id])
+  ingredientes   ProductoIngrediente[]
+  detallesPedido DetallePedido[]
+
+  @@map("productos")
+}
+
+model Ingrediente {
+  id          Int     @id @default(autoincrement())
+  nombre      String
+  unidad      String
+  stock       Decimal @db.Decimal(10, 3)
+  stockMinimo Decimal @db.Decimal(10, 3) @default(0)
+  activo      Boolean @default(true)
+  creadoEn    DateTime @default(now())
+
+  productos ProductoIngrediente[]
+
+  @@map("ingredientes")
+}
+
+model ProductoIngrediente {
+  id            Int     @id @default(autoincrement())
+  productoId    Int
+  ingredienteId Int
+  cantidad      Decimal @db.Decimal(10, 3)
+
+  producto    Producto    @relation(fields: [productoId], references: [id])
+  ingrediente Ingrediente @relation(fields: [ingredienteId], references: [id])
+
+  @@unique([productoId, ingredienteId])
+  @@map("producto_ingredientes")
+}
+
+// ==========================================
+// POS - PEDIDOS Y VENTAS
+// ==========================================
+
+enum EstadoPedido {
+  PENDIENTE
+  EN_COCINA
+  LISTO
+  ENTREGADO
+  ANULADO
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TARJETA
+  TRANSFERENCIA
+  NEQUI
+  DAVIPLATA
+}
+
+model Cliente {
+  id        Int      @id @default(autoincrement())
+  empresaId Int
+  nombre    String
+  telefono  String?
+  email     String?
+  puntos    Int      @default(0)
+  activo    Boolean  @default(true)
+  creadoEn  DateTime @default(now())
+
+  empresa Empresa  @relation(fields: [empresaId], references: [id])
+  pedidos Pedido[]
+
+  @@map("clientes")
+}
+
+model Pedido {
+  id            Int          @id @default(autoincrement())
+  sucursalId    Int
+  usuarioId     Int
+  clienteId     Int?
+  cajaId        Int?
+  numero        String       @unique
+  estado        EstadoPedido @default(PENDIENTE)
+  metodoPago    MetodoPago   @default(EFECTIVO)
+  subtotal      Decimal      @db.Decimal(10, 2)
+  descuento     Decimal      @db.Decimal(10, 2) @default(0)
+  total         Decimal      @db.Decimal(10, 2)
+  observacion   String?
+  creadoEn      DateTime     @default(now())
+  actualizadoEn DateTime     @updatedAt
+
+  sucursal Sucursal        @relation(fields: [sucursalId], references: [id])
+  usuario  Usuario         @relation(fields: [usuarioId], references: [id])
+  cliente  Cliente?        @relation(fields: [clienteId], references: [id])
+  caja     Caja?           @relation(fields: [cajaId], references: [id])
+  detalles DetallePedido[]
+
+  @@map("pedidos")
+}
+
+model DetallePedido {
+  id             Int     @id @default(autoincrement())
+  pedidoId       Int
+  productoId     Int
+  cantidad       Int
+  precioUnitario Decimal @db.Decimal(10, 2)
+  subtotal       Decimal @db.Decimal(10, 2)
+  exclusiones    String[]
+  observacion    String?
+
+  pedido   Pedido   @relation(fields: [pedidoId], references: [id])
+  producto Producto @relation(fields: [productoId], references: [id])
+
+  @@map("detalle_pedidos")
+}
+
+// ==========================================
+// CAJA
+// ==========================================
+
+enum EstadoCaja {
+  ABIERTA
+  CERRADA
+}
+
+model Caja {
+  id           Int        @id @default(autoincrement())
+  sucursalId   Int
+  usuarioId    Int
+  estado       EstadoCaja @default(ABIERTA)
+  montoInicial Decimal    @db.Decimal(10, 2)
+  montoFinal   Decimal?   @db.Decimal(10, 2)
+  diferencia   Decimal?   @db.Decimal(10, 2)
+  abiertaEn    DateTime   @default(now())
+  cerradaEn    DateTime?
+
+  sucursal Sucursal @relation(fields: [sucursalId], references: [id])
+  usuario  Usuario  @relation(fields: [usuarioId], references: [id])
+  pedidos  Pedido[]
+
+  @@map("cajas")
+}
