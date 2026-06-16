@@ -11,6 +11,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
 import { CajaModule } from './caja/caja.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { EmpresaModule } from './empresa/empresa.module';
+import { FinancieroModule } from './financiero/financiero.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { EmpresaModule } from './empresa/empresa.module';
     UsuariosModule,
     CajaModule,
     EmpresaModule,
+    FinancieroModule,
   ],
   controllers: [AppController],
   providers: [AppService],

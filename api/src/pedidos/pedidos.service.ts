@@ -8,7 +8,6 @@ export class PedidosService {
   async crearPedido(datos: any, usuarioId: number, empresaId: number) {
     const { items, metodoPago, clienteId, observacion, sucursalId, cajaId } = datos;
 
-    // Verificar productos y calcular total
     let subtotal = 0;
     const itemsValidados = [];
 
@@ -41,10 +40,8 @@ export class PedidosService {
     const descuento = datos.descuento || 0;
     const total = subtotal - descuento;
 
-    // Generar número de pedido
     const numero = await this.generarNumeroPedido(sucursalId);
 
-    // Crear pedido con sus detalles
     const pedido = await this.prisma.pedido.create({
       data: {
         numero,
@@ -76,8 +73,22 @@ export class PedidosService {
       },
     });
 
-    // Descontar inventario (respetando exclusiones)
+    // Descontar inventario respetando exclusiones
     await this.descontarInventario(itemsValidados);
+
+    // Registrar ingreso automático por venta
+    await this.prisma.movimientoFinanciero.create({
+      data: {
+        empresaId,
+        sucursalId,
+        usuarioId,
+        tipo: 'INGRESO',
+        categoria: 'VENTA',
+        descripcion: `Venta ${numero} — ${itemsValidados.length} producto(s)`,
+        monto: total,
+        pedidoId: pedido.id,
+      },
+    });
 
     return pedido;
   }
@@ -85,7 +96,6 @@ export class PedidosService {
   private async descontarInventario(items: any[]) {
     for (const item of items) {
       for (const productoIngrediente of item.producto.ingredientes) {
-        // Si el ingrediente está en exclusiones, NO descontar
         const excluido = item.exclusiones.includes(
           productoIngrediente.ingrediente.nombre,
         );

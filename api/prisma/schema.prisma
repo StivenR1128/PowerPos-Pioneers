@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider      = "prisma-client-js"
   binaryTargets = ["native", "windows"]
@@ -29,11 +24,12 @@ model Empresa {
   creadoEn      DateTime  @default(now())
   actualizadoEn DateTime  @updatedAt
 
-  usuarios   Usuario[]
-  sucursales Sucursal[]
-  categorias Categoria[]
-  productos  Producto[]
-  clientes   Cliente[]
+  usuarios    Usuario[]
+  sucursales  Sucursal[]
+  categorias  Categoria[]
+  productos   Producto[]
+  clientes    Cliente[]
+  movimientos MovimientoFinanciero[]
 
   @@map("empresas")
 }
@@ -47,10 +43,11 @@ model Sucursal {
   activo    Boolean  @default(true)
   creadoEn  DateTime @default(now())
 
-  empresa  Empresa   @relation(fields: [empresaId], references: [id])
-  usuarios Usuario[]
-  pedidos  Pedido[]
-  cajas    Caja[]
+  empresa     Empresa                @relation(fields: [empresaId], references: [id])
+  usuarios    Usuario[]
+  pedidos     Pedido[]
+  cajas       Caja[]
+  movimientos MovimientoFinanciero[]
 
   @@map("sucursales")
 }
@@ -80,11 +77,12 @@ model Usuario {
   creadoEn      DateTime   @default(now())
   actualizadoEn DateTime   @updatedAt
 
-  empresa  Empresa?  @relation(fields: [empresaId], references: [id])
-  sucursal Sucursal? @relation(fields: [sucursalId], references: [id])
-  pedidos  Pedido[]
-  cajas    Caja[]
+  empresa     Empresa?               @relation(fields: [empresaId], references: [id])
+  sucursal    Sucursal?              @relation(fields: [sucursalId], references: [id])
+  pedidos     Pedido[]
+  cajas       Caja[]
   eventos     EventoCaja[]
+  movimientos MovimientoFinanciero[]
 
   @@map("usuarios")
 }
@@ -131,12 +129,12 @@ model Producto {
 }
 
 model Ingrediente {
-  id          Int     @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   nombre      String
   unidad      String
-  stock       Decimal @db.Decimal(10, 3)
-  stockMinimo Decimal @db.Decimal(10, 3) @default(0)
-  activo      Boolean @default(true)
+  stock       Decimal  @db.Decimal(10, 3)
+  stockMinimo Decimal  @db.Decimal(10, 3) @default(0)
+  activo      Boolean  @default(true)
   creadoEn    DateTime @default(now())
 
   productos ProductoIngrediente[]
@@ -209,11 +207,12 @@ model Pedido {
   creadoEn      DateTime     @default(now())
   actualizadoEn DateTime     @updatedAt
 
-  sucursal Sucursal        @relation(fields: [sucursalId], references: [id])
-  usuario  Usuario         @relation(fields: [usuarioId], references: [id])
-  cliente  Cliente?        @relation(fields: [clienteId], references: [id])
-  caja     Caja?           @relation(fields: [cajaId], references: [id])
-  detalles DetallePedido[]
+  sucursal    Sucursal               @relation(fields: [sucursalId], references: [id])
+  usuario     Usuario                @relation(fields: [usuarioId], references: [id])
+  cliente     Cliente?               @relation(fields: [clienteId], references: [id])
+  caja        Caja?                  @relation(fields: [cajaId], references: [id])
+  detalles    DetallePedido[]
+  movimientos MovimientoFinanciero[]
 
   @@map("pedidos")
 }
@@ -254,15 +253,13 @@ model Caja {
   abiertaEn    DateTime   @default(now())
   cerradaEn    DateTime?
 
-  sucursal    Sucursal     @relation(fields: [sucursalId], references: [id])
-  usuario     Usuario      @relation(fields: [usuarioId], references: [id])
-  pedidos     Pedido[]
-  eventos     EventoCaja[]
+  sucursal Sucursal     @relation(fields: [sucursalId], references: [id])
+  usuario  Usuario      @relation(fields: [usuarioId], references: [id])
+  pedidos  Pedido[]
+  eventos  EventoCaja[]
 
   @@map("cajas")
 }
-
-
 
 // ==========================================
 // EVENTOS DE CAJA
@@ -277,16 +274,58 @@ enum TipoEventoCaja {
 }
 
 model EventoCaja {
-  id          Int             @id @default(autoincrement())
+  id          Int            @id @default(autoincrement())
   cajaId      Int
   usuarioId   Int
   tipo        TipoEventoCaja
   descripcion String
-  esAlerta    Boolean         @default(false)
-  creadoEn    DateTime        @default(now())
+  esAlerta    Boolean        @default(false)
+  creadoEn    DateTime       @default(now())
 
-  caja        Caja            @relation(fields: [cajaId], references: [id])
-  usuario     Usuario         @relation(fields: [usuarioId], references: [id])
+  caja    Caja    @relation(fields: [cajaId], references: [id])
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
 
   @@map("eventos_caja")
+}
+
+// ==========================================
+// MÓDULO FINANCIERO
+// ==========================================
+
+enum TipoMovimiento {
+  INGRESO
+  EGRESO
+}
+
+enum CategoriaMovimiento {
+  VENTA
+  COMPRA_INSUMOS
+  NOMINA
+  SERVICIOS
+  ARRIENDO
+  MANTENIMIENTO
+  IMPUESTOS
+  OTROS
+}
+
+model MovimientoFinanciero {
+  id          Int                 @id @default(autoincrement())
+  empresaId   Int
+  sucursalId  Int
+  usuarioId   Int
+  tipo        TipoMovimiento
+  categoria   CategoriaMovimiento
+  descripcion String
+  monto       Decimal             @db.Decimal(10, 2)
+  fecha       DateTime            @default(now())
+  pedidoId    Int?
+  comprobante String?
+  creadoEn    DateTime            @default(now())
+
+  empresa  Empresa  @relation(fields: [empresaId], references: [id])
+  sucursal Sucursal @relation(fields: [sucursalId], references: [id])
+  usuario  Usuario  @relation(fields: [usuarioId], references: [id])
+  pedido   Pedido?  @relation(fields: [pedidoId], references: [id])
+
+  @@map("movimientos_financieros")
 }
