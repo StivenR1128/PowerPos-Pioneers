@@ -84,6 +84,7 @@ model Usuario {
   sucursal Sucursal? @relation(fields: [sucursalId], references: [id])
   pedidos  Pedido[]
   cajas    Caja[]
+  eventos     EventoCaja[]
 
   @@map("usuarios")
 }
@@ -253,9 +254,39 @@ model Caja {
   abiertaEn    DateTime   @default(now())
   cerradaEn    DateTime?
 
-  sucursal Sucursal @relation(fields: [sucursalId], references: [id])
-  usuario  Usuario  @relation(fields: [usuarioId], references: [id])
-  pedidos  Pedido[]
+  sucursal    Sucursal     @relation(fields: [sucursalId], references: [id])
+  usuario     Usuario      @relation(fields: [usuarioId], references: [id])
+  pedidos     Pedido[]
+  eventos     EventoCaja[]
 
   @@map("cajas")
+}
+
+
+
+// ==========================================
+// EVENTOS DE CAJA
+// ==========================================
+
+enum TipoEventoCaja {
+  APERTURA
+  CIERRE
+  APERTURA_IRREGULAR
+  DIFERENCIA
+  MOVIMIENTO
+}
+
+model EventoCaja {
+  id          Int             @id @default(autoincrement())
+  cajaId      Int
+  usuarioId   Int
+  tipo        TipoEventoCaja
+  descripcion String
+  esAlerta    Boolean         @default(false)
+  creadoEn    DateTime        @default(now())
+
+  caja        Caja            @relation(fields: [cajaId], references: [id])
+  usuario     Usuario         @relation(fields: [usuarioId], references: [id])
+
+  @@map("eventos_caja")
 }

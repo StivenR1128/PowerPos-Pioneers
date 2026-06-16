@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
 import { Plus, Edit, Trash2, LogOut, LayoutDashboard, ShoppingCart, Package } from 'lucide-react';
+import AuthGuard from '@/components/AuthGuard';
+
 
 interface Categoria {
   id: number;
@@ -118,6 +120,7 @@ export default function ProductosPage() {
   const handleLogout = () => { logout(); router.push('/login'); };
 
   return (
+    <AuthGuard>
     <div className="min-h-screen bg-gray-950 flex flex-col">
       <header className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -316,5 +319,6 @@ export default function ProductosPage() {
         </div>
       )}
     </div>
+    </AuthGuard>
   );
 }

@@ -16,11 +16,9 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     setError('');
-
     try {
       const { data } = await api.post('/auth/login', { email, password });
       setAuth(data.access_token, data.usuario);
-
       switch (data.usuario.rol) {
         case 'SUPERADMIN':
         case 'ADMIN_EMPRESA':

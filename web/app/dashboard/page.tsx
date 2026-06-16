@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
 import { ShoppingBag, DollarSign, TrendingUp, Clock, LogOut, LayoutDashboard, ShoppingCart } from 'lucide-react';
-
+import AuthGuard from '@/components/AuthGuard';
 interface Pedido {
   id: number;
   numero: string;
@@ -21,6 +21,8 @@ export default function DashboardPage() {
   const { usuario, logout } = useAuthStore();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
+  const [alertas, setAlertas] = useState<any[]>([]);
+  const [cajaAbierta, setCajaAbierta] = useState<any>(null);
 
   useEffect(() => {
     if (!usuario) { router.push('/login'); return; }
@@ -31,8 +33,14 @@ export default function DashboardPage() {
 
   const cargarDatos = async () => {
     try {
-      const { data } = await api.get('/pedidos');
-      setPedidos(data);
+      const [pedidosRes, alertasRes, cajaRes] = await Promise.all([
+        api.get('/pedidos'),
+        api.get('/caja/alertas'),
+        api.get('/caja/abierta'),
+      ]);
+      setPedidos(pedidosRes.data);
+      setAlertas(alertasRes.data);
+      setCajaAbierta(cajaRes.data);
     } catch (e) {
       console.error(e);
     } finally {
@@ -70,6 +78,7 @@ export default function DashboardPage() {
   const handleLogout = () => { logout(); router.push('/login'); };
 
   return (
+    <AuthGuard>
     <div className="min-h-screen bg-gray-950 flex flex-col">
       {/* Header */}
       <header className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between">
@@ -141,6 +150,70 @@ export default function DashboardPage() {
             <div className="text-gray-500 text-xs mt-1">Preparándose</div>
           </div>
         </div>
+        {/* Estado de caja */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <span className="text-xl">🏧</span> Estado de caja
+            </h3>
+            {cajaAbierta ? (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Estado</span>
+                  <span className="text-green-400 font-medium">● Abierta</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Cajero</span>
+                  <span className="text-white">{cajaAbierta.usuario?.nombre}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Monto inicial</span>
+                  <span className="text-white">${Number(cajaAbierta.montoInicial).toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Ventas del turno</span>
+                  <span className="text-orange-500 font-bold">${cajaAbierta.totalVentas?.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm border-t border-gray-800 pt-2">
+                  <span className="text-gray-400">Total esperado</span>
+                  <span className="text-white font-bold">${cajaAbierta.totalEsperado?.toLocaleString()}</span>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-red-400 font-medium">● Caja cerrada</p>
+                <p className="text-gray-500 text-sm mt-1">No hay caja abierta en este momento</p>
+              </div>
+            )}
+          </div>
+
+          {/* Alertas */}
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <h3 className="text-white font-semibold mb-3 flex items-center gap-2">
+              <span className="text-xl">🚨</span> Alertas
+              {alertas.length > 0 && (
+                <span className="ml-auto bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {alertas.length}
+                </span>
+              )}
+            </h3>
+            {alertas.length === 0 ? (
+              <p className="text-gray-500 text-sm text-center py-4">No hay alertas</p>
+            ) : (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {alertas.map((alerta) => (
+                  <div key={alerta.id} className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                    <p className="text-red-400 text-xs font-medium">{alerta.tipo}</p>
+                    <p className="text-gray-300 text-xs mt-1">{alerta.descripcion}</p>
+                    <p className="text-gray-600 text-xs mt-1">
+                      {alerta.usuario?.nombre} · {new Date(alerta.creadoEn).toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* Pedidos recientes */}
         <div className="bg-gray-900 border border-gray-800 rounded-xl">
@@ -200,5 +273,6 @@ export default function DashboardPage() {
         </div>
       </div>
     </div>
+    </AuthGuard>
   );
 }
