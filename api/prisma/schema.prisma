@@ -83,6 +83,7 @@ model Usuario {
   cajas       Caja[]
   eventos     EventoCaja[]
   movimientos MovimientoFinanciero[]
+  movimientosInventario MovimientoInventario[]
 
   @@map("usuarios")
 }
@@ -129,17 +130,38 @@ model Producto {
 }
 
 model Ingrediente {
-  id          Int      @id @default(autoincrement())
-  nombre      String
-  unidad      String
-  stock       Decimal  @db.Decimal(10, 3)
-  stockMinimo Decimal  @db.Decimal(10, 3) @default(0)
-  activo      Boolean  @default(true)
-  creadoEn    DateTime @default(now())
+  id               Int      @id @default(autoincrement())
+  nombre           String
+  unidad           String
+  unidadCompra     String?
+  factorConversion Decimal? @db.Decimal(10, 3)
+  stock            Decimal  @db.Decimal(10, 3)
+  stockMinimo      Decimal  @db.Decimal(10, 3) @default(0)
+  activo           Boolean  @default(true)
+  creadoEn         DateTime @default(now())
 
-  productos ProductoIngrediente[]
+  productos    ProductoIngrediente[]
+  movimientos  MovimientoInventario[]
 
   @@map("ingredientes")
+}
+model MovimientoInventario {
+  id              Int      @id @default(autoincrement())
+  ingredienteId   Int
+  usuarioId       Int
+  tipo            String
+  cantidadMovida  Decimal  @db.Decimal(10, 3)
+  unidadCompra    String?
+  factorAplicado  Decimal? @db.Decimal(10, 3)
+  stockAnterior   Decimal  @db.Decimal(10, 3)
+  stockNuevo      Decimal  @db.Decimal(10, 3)
+  descripcion     String?
+  creadoEn        DateTime @default(now())
+
+  ingrediente Ingrediente @relation(fields: [ingredienteId], references: [id])
+  usuario     Usuario     @relation(fields: [usuarioId], references: [id])
+
+  @@map("movimientos_inventario")
 }
 
 model ProductoIngrediente {

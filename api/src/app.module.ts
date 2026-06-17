@@ -12,6 +12,7 @@ import { CajaModule } from './caja/caja.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { EmpresaModule } from './empresa/empresa.module';
 import { FinancieroModule } from './financiero/financiero.module';
+import { InventarioModule } from './inventario/inventario.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { FinancieroModule } from './financiero/financiero.module';
     CajaModule,
     EmpresaModule,
     FinancieroModule,
+    InventarioModule,
   ],
   controllers: [AppController],
   providers: [AppService],
