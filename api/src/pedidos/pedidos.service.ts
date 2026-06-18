@@ -90,6 +90,17 @@ export class PedidosService {
       },
     });
 
+    // Sumar puntos de fidelización si el pedido tiene cliente asociado
+    if (clienteId) {
+      const puntosGanados = Math.floor(total / 1000); // 1 punto por cada $1.000 gastado
+      if (puntosGanados > 0) {
+        await this.prisma.cliente.update({
+          where: { id: clienteId },
+          data: { puntos: { increment: puntosGanados } },
+        });
+      }
+    }
+
     return pedido;
   }
 

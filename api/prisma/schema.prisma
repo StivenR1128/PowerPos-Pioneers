@@ -198,18 +198,22 @@ enum MetodoPago {
 }
 
 model Cliente {
-  id        Int      @id @default(autoincrement())
-  empresaId Int
-  nombre    String
-  telefono  String?
-  email     String?
-  puntos    Int      @default(0)
-  activo    Boolean  @default(true)
-  creadoEn  DateTime @default(now())
+  id              Int       @id @default(autoincrement())
+  empresaId       Int
+  nombre          String
+  documento       String?
+  telefono        String?
+  email           String?
+  direccion       String?
+  fechaNacimiento DateTime?
+  puntos          Int       @default(0)
+  activo          Boolean   @default(true)
+  creadoEn        DateTime  @default(now())
 
   empresa Empresa  @relation(fields: [empresaId], references: [id])
   pedidos Pedido[]
 
+  @@unique([empresaId, documento])
   @@map("clientes")
 }
 

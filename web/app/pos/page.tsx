@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
-import { ShoppingCart, Plus, Minus, Trash2, LogOut, LayoutDashboard } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, LogOut, LayoutDashboard, User, X, Search } from 'lucide-react';
 import AuthGuard from '@/components/AuthGuard';
 
 interface Producto {
@@ -40,6 +40,12 @@ export default function POSPage() {
   const [mounted, setMounted] = useState(false);
   const [logoBase64, setLogoBase64] = useState<string>('');
 
+  // Cliente asociado al pedido
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<any>(null);
+  const [busquedaCliente, setBusquedaCliente] = useState('');
+  const [resultadosCliente, setResultadosCliente] = useState<any[]>([]);
+  const [mostrarDropdownCliente, setMostrarDropdownCliente] = useState(false);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -52,6 +58,22 @@ export default function POSPage() {
     }
     cargarDatos();
   }, [mounted, usuario]);
+
+  useEffect(() => {
+    if (!busquedaCliente) {
+      setResultadosCliente([]);
+      return;
+    }
+    const timeout = setTimeout(async () => {
+      try {
+        const { data } = await api.get(`/clientes?busqueda=${busquedaCliente}`);
+        setResultadosCliente(data);
+      } catch (e) {
+        console.error(e);
+      }
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [busquedaCliente]);
 
   const cargarDatos = async () => {
     const [cats, prods, empresa] = await Promise.all([
@@ -79,6 +101,17 @@ export default function POSPage() {
         })
         .catch(e => console.error('Error logo:', e));
     }
+  };
+
+  const seleccionarCliente = (cliente: any) => {
+    setClienteSeleccionado(cliente);
+    setBusquedaCliente('');
+    setResultadosCliente([]);
+    setMostrarDropdownCliente(false);
+  };
+
+  const quitarCliente = () => {
+    setClienteSeleccionado(null);
   };
 
   const imprimirTicket = (pedido: any) => {
@@ -364,6 +397,12 @@ export default function POSPage() {
 
         <div class="metodo-pago">✓ Pago en ${pedido.metodoPago}</div>
 
+        ${pedido.cliente ? `
+          <div class="observacion-pedido">
+            👤 <strong>Cliente:</strong> ${pedido.cliente.nombre}
+          </div>
+        ` : ''}
+
         ${pedido.observacion ? `
           <div class="observacion-pedido">
             📝 <strong>Nota:</strong> ${pedido.observacion}
@@ -436,6 +475,7 @@ export default function POSPage() {
       const { data } = await api.post('/pedidos', {
         sucursalId: 1,
         metodoPago,
+        clienteId: clienteSeleccionado?.id || null,
         items: carrito.map((item) => ({
           productoId: item.producto.id,
           cantidad: item.cantidad,
@@ -445,6 +485,7 @@ export default function POSPage() {
       });
       setPedidoExitoso(data.numero);
       setCarrito([]);
+      setClienteSeleccionado(null);
       imprimirTicket(data);
       setTimeout(() => setPedidoExitoso(null), 4000);
     } catch (e) {
@@ -525,6 +566,50 @@ export default function POSPage() {
               <span className="ml-auto bg-orange-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{carrito.length}</span>
             </div>
 
+            {/* Selector de cliente */}
+            <div className="p-4 border-b border-gray-800">
+              {clienteSeleccionado ? (
+                <div className="flex items-center justify-between bg-gray-800 border border-orange-500/30 rounded-lg px-3 py-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <User size={14} className="text-orange-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-white text-sm font-medium truncate">{clienteSeleccionado.nombre}</div>
+                      <div className="text-yellow-400 text-xs">⭐ {clienteSeleccionado.puntos} puntos</div>
+                    </div>
+                  </div>
+                  <button onClick={quitarCliente} className="text-gray-500 hover:text-white transition-colors flex-shrink-0">
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+                  <input
+                    type="text"
+                    value={busquedaCliente}
+                    onChange={(e) => { setBusquedaCliente(e.target.value); setMostrarDropdownCliente(true); }}
+                    onFocus={() => setMostrarDropdownCliente(true)}
+                    placeholder="Buscar cliente (opcional)..."
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+                  />
+                  {mostrarDropdownCliente && resultadosCliente.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden z-10 max-h-48 overflow-y-auto">
+                      {resultadosCliente.map((cliente) => (
+                        <button
+                          key={cliente.id}
+                          onClick={() => seleccionarCliente(cliente)}
+                          className="w-full text-left px-3 py-2 hover:bg-gray-700 transition-colors border-b border-gray-700 last:border-0"
+                        >
+                          <div className="text-white text-sm">{cliente.nombre}</div>
+                          <div className="text-gray-500 text-xs">{cliente.telefono || cliente.documento || ''}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {carrito.length === 0 && (
                 <p className="text-gray-600 text-sm text-center mt-8">Selecciona productos para agregar al pedido</p>
@@ -559,6 +644,11 @@ export default function POSPage() {
             </div>
 
             <div className="p-4 border-t border-gray-800 space-y-3">
+              {clienteSeleccionado && total > 0 && (
+                <div className="text-center text-xs text-yellow-400">
+                  Este pedido sumará +{Math.floor(total / 1000)} puntos a {clienteSeleccionado.nombre.split(' ')[0]}
+                </div>
+              )}
               <div className="flex justify-between text-white font-bold text-lg">
                 <span>Total</span>
                 <span className="text-orange-500">${total.toLocaleString()}</span>

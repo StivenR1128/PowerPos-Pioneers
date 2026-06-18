@@ -13,6 +13,7 @@ import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { EmpresaModule } from './empresa/empresa.module';
 import { FinancieroModule } from './financiero/financiero.module';
 import { InventarioModule } from './inventario/inventario.module';
+import { ClientesModule } from './clientes/clientes.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { InventarioModule } from './inventario/inventario.module';
     EmpresaModule,
     FinancieroModule,
     InventarioModule,
+    ClientesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
