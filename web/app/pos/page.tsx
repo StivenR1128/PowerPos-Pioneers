@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
-import { ShoppingCart, Plus, Minus, Trash2, LogOut, LayoutDashboard, User, X, Search } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, User, X, Search } from 'lucide-react';
 import AuthGuard from '@/components/AuthGuard';
+import Navbar from '@/components/Navbar';
 
 interface Producto {
   id: number;
@@ -23,8 +24,7 @@ interface ItemCarrito {
 }
 
 export default function POSPage() {
-  const router = useRouter();
-  const { usuario, logout } = useAuthStore();
+  const { usuario } = useAuthStore();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<any[]>([]);
   const [categoriaActiva, setCategoriaActiva] = useState<number | null>(null);
@@ -52,12 +52,8 @@ export default function POSPage() {
 
   useEffect(() => {
     if (!mounted) return;
-    if (!usuario) {
-      router.push('/login');
-      return;
-    }
     cargarDatos();
-  }, [mounted, usuario]);
+  }, [mounted]);
 
   useEffect(() => {
     if (!busquedaCliente) {
@@ -495,28 +491,10 @@ export default function POSPage() {
     }
   };
 
-  const handleLogout = () => { logout(); router.push('/login'); };
-
   return (
     <AuthGuard>
       <div className="min-h-screen bg-gray-950 flex flex-col">
-        <header className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-white">Power<span className="text-orange-500">POS</span></h1>
-            <span className="text-gray-500 text-sm">|</span>
-            <span className="text-gray-400 text-sm">{usuario?.empresa}</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm">
-              <LayoutDashboard size={16} />
-              Dashboard
-            </button>
-            <span className="text-gray-400 text-sm">{usuario?.nombre}</span>
-            <button onClick={handleLogout} className="text-gray-500 hover:text-white transition-colors">
-              <LogOut size={18} />
-            </button>
-          </div>
-        </header>
+        <Navbar />
 
         {pedidoExitoso && (
           <div className="bg-green-500/10 border-b border-green-500/20 text-green-400 text-center py-3 text-sm font-medium">

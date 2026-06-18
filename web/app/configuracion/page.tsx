@@ -1,14 +1,11 @@
 'use client';
 import { useEffect, useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
-import { LogOut, LayoutDashboard, ShoppingCart, Settings, Upload } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import AuthGuard from '@/components/AuthGuard';
+import Navbar from '@/components/Navbar';
 
 export default function ConfiguracionPage() {
-  const router = useRouter();
-  const { usuario, logout } = useAuthStore();
   const [empresa, setEmpresa] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [mensaje, setMensaje] = useState('');
@@ -43,33 +40,10 @@ export default function ConfiguracionPage() {
     }
   };
 
-  const handleLogout = () => { logout(); router.push('/login'); };
-
   return (
     <AuthGuard>
     <div className="min-h-screen bg-gray-950 flex flex-col">
-      <header className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold text-white">Power<span className="text-orange-500">POS</span></h1>
-          <span className="text-gray-500 text-sm">|</span>
-          <span className="text-gray-400 text-sm">{usuario?.empresa}</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/pos')} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm">
-            <ShoppingCart size={16} />POS
-          </button>
-          <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm">
-            <LayoutDashboard size={16} />Dashboard
-          </button>
-          <button className="flex items-center gap-2 text-orange-500 text-sm">
-            <Settings size={16} />Configuración
-          </button>
-          <span className="text-gray-400 text-sm">{usuario?.nombre}</span>
-          <button onClick={handleLogout} className="text-gray-500 hover:text-white transition-colors">
-            <LogOut size={18} />
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       <div className="flex-1 p-6 max-w-2xl mx-auto w-full">
         <h2 className="text-white text-xl font-bold mb-6">Configuración de empresa</h2>

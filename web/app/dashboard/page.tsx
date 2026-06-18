@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
-import { ShoppingBag, DollarSign, TrendingUp, Clock, LogOut, LayoutDashboard, ShoppingCart } from 'lucide-react';
+import { ShoppingBag, DollarSign, TrendingUp, Clock } from 'lucide-react';
 import AuthGuard from '@/components/AuthGuard';
+import Navbar from '@/components/Navbar';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -25,7 +26,7 @@ const COLORES = ['#FF6B35', '#f7931e', '#3b82f6', '#10b981', '#a855f7', '#ec4899
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { usuario, logout } = useAuthStore();
+  const { usuario } = useAuthStore();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [alertas, setAlertas] = useState<any[]>([]);
@@ -34,7 +35,6 @@ export default function DashboardPage() {
   const [resumenFinanciero, setResumenFinanciero] = useState<any>(null);
 
   useEffect(() => {
-    if (!usuario) { router.push('/login'); return; }
     cargarDatos();
     const intervalo = setInterval(cargarDatos, 10000);
     return () => clearInterval(intervalo);
@@ -88,8 +88,6 @@ export default function DashboardPage() {
     cargarDatos();
   };
 
-  const handleLogout = () => { logout(); router.push('/login'); };
-
   const datosIngresosEgresos = resumenFinanciero ? [
     { nombre: 'Ingresos', valor: resumenFinanciero.totalIngresos || 0 },
     { nombre: 'Egresos', valor: resumenFinanciero.totalEgresos || 0 },
@@ -98,28 +96,7 @@ export default function DashboardPage() {
   return (
     <AuthGuard>
     <div className="min-h-screen bg-gray-950 flex flex-col">
-      {/* Header */}
-      <header className="bg-gray-900 border-b border-gray-800 px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold text-white">Power<span className="text-orange-500">POS</span></h1>
-          <span className="text-gray-500 text-sm">|</span>
-          <span className="text-gray-400 text-sm">{usuario?.empresa}</span>
-        </div>
-        <div className="flex items-center gap-4">
-          <button onClick={() => router.push('/pos')} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm">
-            <ShoppingCart size={16} />
-            POS
-          </button>
-          <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 text-orange-500 text-sm">
-            <LayoutDashboard size={16} />
-            Dashboard
-          </button>
-          <span className="text-gray-400 text-sm">{usuario?.nombre}</span>
-          <button onClick={handleLogout} className="text-gray-500 hover:text-white transition-colors">
-            <LogOut size={18} />
-          </button>
-        </div>
-      </header>
+      <Navbar />
 
       <div className="flex-1 p-6 space-y-6">
         {/* KPIs */}
