@@ -66,6 +66,44 @@ export class ProductosService {
   async actualizar(id: number, datos: any, empresaId: number) {
     await this.obtener(id, empresaId);
     const { ingredientes, ...productoData } = datos;
+
+    // Si vienen ingredientes, reemplazamos toda la receta del producto
+    if (ingredientes) {
+      await this.prisma.productoIngrediente.deleteMany({
+        where: { productoId: id },
+      });
+
+      await this.prisma.productoIngrediente.createMany({
+        data: ingredientes
+          .filter((ing: any) => ing.ingredienteId)
+          .map((ing: any) => ({
+            productoId: id,
+            ingredienteId: ing.ingredienteId,
+            cantidad: ing.cantidad,
+          })),
+      });
+
+      // Crear los ingredientes nuevos (sin ingredienteId) que el admin haya escrito a mano
+      const nuevos = ingredientes.filter((ing: any) => !ing.ingredienteId && ing.nombre);
+      for (const ing of nuevos) {
+        const ingredienteCreado = await this.prisma.ingrediente.create({
+          data: {
+            nombre: ing.nombre,
+            unidad: ing.unidad,
+            stock: ing.stockInicial || 0,
+            stockMinimo: ing.stockMinimo || 0,
+          },
+        });
+        await this.prisma.productoIngrediente.create({
+          data: {
+            productoId: id,
+            ingredienteId: ingredienteCreado.id,
+            cantidad: ing.cantidad,
+          },
+        });
+      }
+    }
+
     return this.prisma.producto.update({
       where: { id },
       data: productoData,

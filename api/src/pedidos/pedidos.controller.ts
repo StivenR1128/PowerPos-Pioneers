@@ -24,6 +24,11 @@ export class PedidosController {
     );
   }
 
+  @Get('estadisticas')
+  estadisticas(@Request() req: any) {
+    return this.pedidosService.obtenerEstadisticas(req.user.empresaId);
+  }
+
   @Get(':id')
   obtener(@Param('id') id: string) {
     return this.pedidosService.obtenerPedido(+id);

@@ -165,6 +165,70 @@ export class PedidosService {
     });
   }
 
+  async obtenerEstadisticas(empresaId: number) {
+    const haceUnaSemana = new Date();
+    haceUnaSemana.setDate(haceUnaSemana.getDate() - 7);
+
+    const pedidos = await this.prisma.pedido.findMany({
+      where: {
+        sucursal: { empresaId },
+        estado: { not: 'ANULADO' },
+        creadoEn: { gte: haceUnaSemana },
+      },
+      include: {
+        detalles: { include: { producto: { include: { categoria: true } } } },
+      },
+    });
+
+    // Ventas por día (últimos 7 días)
+    const ventasPorDiaMap = new Map<string, number>();
+    for (let i = 6; i >= 0; i--) {
+      const fecha = new Date();
+      fecha.setDate(fecha.getDate() - i);
+      const clave = fecha.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric' });
+      ventasPorDiaMap.set(clave, 0);
+    }
+    for (const pedido of pedidos) {
+      const clave = new Date(pedido.creadoEn).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric' });
+      if (ventasPorDiaMap.has(clave)) {
+        ventasPorDiaMap.set(clave, ventasPorDiaMap.get(clave)! + Number(pedido.total));
+      }
+    }
+    const ventasPorDia = Array.from(ventasPorDiaMap.entries()).map(([dia, total]) => ({ dia, total }));
+
+    // Productos más vendidos
+    const productosMap = new Map<string, number>();
+    for (const pedido of pedidos) {
+      for (const detalle of pedido.detalles) {
+        const nombre = detalle.producto.nombre;
+        productosMap.set(nombre, (productosMap.get(nombre) || 0) + detalle.cantidad);
+      }
+    }
+    const productosMasVendidos = Array.from(productosMap.entries())
+      .map(([nombre, cantidad]) => ({ nombre, cantidad }))
+      .sort((a, b) => b.cantidad - a.cantidad)
+      .slice(0, 6);
+
+    // Ventas por método de pago
+    const metodoPagoMap = new Map<string, number>();
+    for (const pedido of pedidos) {
+      metodoPagoMap.set(pedido.metodoPago, (metodoPagoMap.get(pedido.metodoPago) || 0) + Number(pedido.total));
+    }
+    const ventasPorMetodoPago = Array.from(metodoPagoMap.entries()).map(([metodo, total]) => ({ metodo, total }));
+
+    // Ventas por categoría
+    const categoriaMap = new Map<string, number>();
+    for (const pedido of pedidos) {
+      for (const detalle of pedido.detalles) {
+        const categoria = detalle.producto.categoria?.nombre || 'Sin categoría';
+        categoriaMap.set(categoria, (categoriaMap.get(categoria) || 0) + Number(detalle.subtotal));
+      }
+    }
+    const ventasPorCategoria = Array.from(categoriaMap.entries()).map(([categoria, total]) => ({ categoria, total }));
+
+    return { ventasPorDia, productosMasVendidos, ventasPorMetodoPago, ventasPorCategoria };
+  }
+
   private async generarNumeroPedido(sucursalId: number): Promise<string> {
     const fecha = new Date();
     const año = fecha.getFullYear();
