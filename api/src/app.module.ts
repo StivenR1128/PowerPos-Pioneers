@@ -16,6 +16,7 @@ import { FinancieroModule } from './financiero/financiero.module';
 import { InventarioModule } from './inventario/inventario.module';
 import { ClientesModule } from './clientes/clientes.module';
 import { TareasModule } from './tareas/tareas.module';
+import { ReportesModule } from './reportes/reportes.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { TareasModule } from './tareas/tareas.module';
     InventarioModule,
     ClientesModule,
     TareasModule,
+    ReportesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

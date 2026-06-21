@@ -1,7 +1,7 @@
 'use client';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import { ShoppingCart, LayoutDashboard, Package, Boxes, Users, DollarSign, Settings, LogOut } from 'lucide-react';
+import { ShoppingCart, LayoutDashboard, Package, Boxes, Users, DollarSign, BarChart3, Settings, LogOut } from 'lucide-react';
 
 const ITEMS = [
   { href: '/pos', label: 'POS', icon: ShoppingCart },
@@ -10,6 +10,7 @@ const ITEMS = [
   { href: '/inventario', label: 'Inventario', icon: Boxes },
   { href: '/clientes', label: 'Clientes', icon: Users },
   { href: '/financiero', label: 'Financiero', icon: DollarSign },
+  { href: '/reportes', label: 'Reportes', icon: BarChart3 },
   { href: '/configuracion', label: 'Config', icon: Settings },
 ];
 

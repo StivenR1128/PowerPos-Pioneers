@@ -26,6 +26,7 @@ export default function InventarioPage() {
     stockMinimo: '',
     unidadCompra: '',
     factorConversion: '',
+    costoUnitario: '',
   });
   const [formEditar, setFormEditar] = useState({
     nombre: '',
@@ -33,6 +34,7 @@ export default function InventarioPage() {
     stockMinimo: '',
     unidadCompra: '',
     factorConversion: '',
+    costoUnitario: '',
   });
   const [filtro, setFiltro] = useState('todos');
   const [verInactivos, setVerInactivos] = useState(false);
@@ -85,9 +87,10 @@ export default function InventarioPage() {
         stockMinimo: Number(formNuevo.stockMinimo) || 0,
         unidadCompra: formNuevo.unidadCompra || null,
         factorConversion: formNuevo.factorConversion ? Number(formNuevo.factorConversion) : null,
+        costoUnitario: formNuevo.costoUnitario ? Number(formNuevo.costoUnitario) : null,
       });
       setModalNuevo(false);
-      setFormNuevo({ nombre: '', unidad: 'gramos', stock: '', stockMinimo: '', unidadCompra: '', factorConversion: '' });
+      setFormNuevo({ nombre: '', unidad: 'gramos', stock: '', stockMinimo: '', unidadCompra: '', factorConversion: '', costoUnitario: '' });
       cargarDatos();
     } catch (e) {
       console.error(e);
@@ -104,6 +107,7 @@ export default function InventarioPage() {
       stockMinimo: String(ing.stockMinimo),
       unidadCompra: ing.unidadCompra || '',
       factorConversion: ing.factorConversion ? String(ing.factorConversion) : '',
+      costoUnitario: ing.costoUnitario ? String(ing.costoUnitario) : '',
     });
   };
 
@@ -117,6 +121,7 @@ export default function InventarioPage() {
         stockMinimo: Number(formEditar.stockMinimo),
         unidadCompra: formEditar.unidadCompra || null,
         factorConversion: formEditar.factorConversion ? Number(formEditar.factorConversion) : null,
+        costoUnitario: formEditar.costoUnitario ? Number(formEditar.costoUnitario) : null,
       });
       setModalEditar(null);
       cargarDatos();
@@ -213,6 +218,7 @@ export default function InventarioPage() {
                   <th className="text-left text-gray-500 text-sm font-medium px-4 py-3">Stock anterior</th>
                   <th className="text-left text-gray-500 text-sm font-medium px-4 py-3">Stock actual</th>
                   <th className="text-left text-gray-500 text-sm font-medium px-4 py-3">Mínimo</th>
+                  <th className="text-left text-gray-500 text-sm font-medium px-4 py-3">Costo unit.</th>
                   <th className="text-left text-gray-500 text-sm font-medium px-4 py-3">Estado</th>
                   <th className="text-right text-gray-500 text-sm font-medium px-4 py-3">Acciones</th>
                 </tr>
@@ -258,6 +264,13 @@ export default function InventarioPage() {
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-gray-400 text-sm">{Number(ing.stockMinimo).toLocaleString()} {ing.unidad}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {ing.costoUnitario ? (
+                          <span className="text-emerald-400 text-sm">${Number(ing.costoUnitario).toLocaleString()}</span>
+                        ) : (
+                          <span className="text-gray-600 text-xs">Sin definir</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         {ing.stockCritico ? (
@@ -407,12 +420,21 @@ export default function InventarioPage() {
                       placeholder="0" />
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Stock mínimo (alerta)</label>
-                  <input type="number" value={formNuevo.stockMinimo}
-                    onChange={(e) => setFormNuevo({ ...formNuevo, stockMinimo: e.target.value })}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
-                    placeholder="0" />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Stock mínimo (alerta)</label>
+                    <input type="number" value={formNuevo.stockMinimo}
+                      onChange={(e) => setFormNuevo({ ...formNuevo, stockMinimo: e.target.value })}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+                      placeholder="0" />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1">Costo por {formNuevo.unidad}</label>
+                    <input type="number" step="0.01" value={formNuevo.costoUnitario}
+                      onChange={(e) => setFormNuevo({ ...formNuevo, costoUnitario: e.target.value })}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+                      placeholder="Ej: 25" />
+                  </div>
                 </div>
                 <div className="border-t border-gray-800 pt-4">
                   <p className="text-gray-400 text-xs mb-3">Conversión de unidades (opcional) — Ej: queso viene en libras pero se usa en lonchas</p>
@@ -485,6 +507,13 @@ export default function InventarioPage() {
                       onChange={(e) => setFormEditar({ ...formEditar, stockMinimo: e.target.value })}
                       className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500" />
                   </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Costo por {formEditar.unidad}</label>
+                  <input type="number" step="0.01" value={formEditar.costoUnitario}
+                    onChange={(e) => setFormEditar({ ...formEditar, costoUnitario: e.target.value })}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+                    placeholder="Ej: 25" />
                 </div>
                 <div className="border-t border-gray-800 pt-4">
                   <p className="text-gray-400 text-xs mb-3">Conversión de unidades (opcional)</p>

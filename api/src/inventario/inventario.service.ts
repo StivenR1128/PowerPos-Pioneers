@@ -42,6 +42,7 @@ export class InventarioService {
         stockMinimo,
         unidadCompra: datos.unidadCompra || null,
         factorConversion: datos.factorConversion || null,
+        costoUnitario: datos.costoUnitario || null,
       },
     });
 
@@ -81,6 +82,7 @@ export class InventarioService {
         stockMinimo: datos.stockMinimo ?? ingrediente.stockMinimo,
         unidadCompra: datos.unidadCompra !== undefined ? datos.unidadCompra : ingrediente.unidadCompra,
         factorConversion: datos.factorConversion !== undefined ? datos.factorConversion : ingrediente.factorConversion,
+        costoUnitario: datos.costoUnitario !== undefined ? datos.costoUnitario : ingrediente.costoUnitario,
       },
     });
   }

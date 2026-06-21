@@ -136,6 +136,7 @@ model Ingrediente {
   unidad           String
   unidadCompra     String?
   factorConversion Decimal? @db.Decimal(10, 3)
+  costoUnitario    Decimal? @db.Decimal(10, 4)
   stock            Decimal  @db.Decimal(10, 3)
   stockMinimo      Decimal  @db.Decimal(10, 3) @default(0)
   activo           Boolean  @default(true)
