@@ -68,6 +68,49 @@ export class NotificacionesService {
     }))};
   }
 
+  /**
+   * Envía un mensaje de cumpleaños directamente al cliente (no al admin).
+   * Intenta WhatsApp si tiene teléfono, y email si tiene correo.
+   */
+  async enviarFelicitacionCumpleanos(cliente: { nombre: string; telefono?: string | null; email?: string | null }, nombreEmpresa: string) {
+    const primerNombre = cliente.nombre.split(' ')[0];
+    const mensajeTexto = `🎉 ¡Feliz cumpleaños, ${primerNombre}! Todo el equipo de ${nombreEmpresa} te desea un día increíble. ¡Esperamos verte pronto para celebrar juntos! 🎂`;
+
+    const intentos: Promise<void>[] = [];
+
+    if (cliente.telefono && process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+      intentos.push(this.enviarWhatsAppA(cliente.telefono, mensajeTexto));
+    }
+
+    if (cliente.email && process.env.SMTP_USER && process.env.SMTP_PASS) {
+      const asunto = `🎉 ¡${nombreEmpresa} te desea un feliz cumpleaños!`;
+      const cuerpo = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background: linear-gradient(135deg, #FF6B35, #f7931e); padding: 30px; border-radius: 8px; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 28px;">🎂 ¡Feliz Cumpleaños!</h1>
+          </div>
+          <div style="padding: 24px; text-align: center;">
+            <p style="font-size: 16px; color: #333;">Hola <strong>${primerNombre}</strong>,</p>
+            <p style="font-size: 16px; color: #333;">${mensajeTexto}</p>
+          </div>
+          <p style="color: #999; font-size: 12px; text-align: center; margin-top: 20px;">
+            Con cariño, el equipo de ${nombreEmpresa}
+          </p>
+        </div>
+      `;
+      intentos.push(this.enviarEmailA(cliente.email, asunto, cuerpo));
+    }
+
+    const resultados = await Promise.allSettled(intentos);
+    resultados.forEach((r, i) => {
+      if (r.status === 'rejected') {
+        this.logger.warn(`No se pudo felicitar a ${cliente.nombre}: ${r.reason}`);
+      }
+    });
+
+    return { enviado: resultados.some((r) => r.status === 'fulfilled') };
+  }
+
   private async enviarEmail(asunto: string, cuerpo: string) {
     if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
       throw new Error('Credenciales de email no configuradas');
@@ -76,6 +119,15 @@ export class NotificacionesService {
     await this.transporter.sendMail({
       from: `"PowerPOS Alerts" <${process.env.SMTP_USER}>`,
       to: process.env.EMAIL_ADMIN,
+      subject: asunto,
+      html: cuerpo,
+    });
+  }
+
+  private async enviarEmailA(destinatario: string, asunto: string, cuerpo: string) {
+    await this.transporter.sendMail({
+      from: `"PowerPOS" <${process.env.SMTP_USER}>`,
+      to: destinatario,
       subject: asunto,
       html: cuerpo,
     });
@@ -96,6 +148,24 @@ export class NotificacionesService {
       from: `whatsapp:${process.env.TWILIO_PHONE}`,
       to: `whatsapp:${process.env.ADMIN_PHONE}`,
       body: `🚨 *PowerPOS Alert*\n*${tipo}*\n\n${mensaje}\n\n_${new Date().toLocaleString('es-CO')}_`,
+    });
+  }
+
+  private async enviarWhatsAppA(telefono: string, mensaje: string) {
+    const twilio = require('twilio');
+    const client = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN,
+    );
+
+    // Asegura el formato internacional para WhatsApp (Twilio Sandbox requiere que el destinatario
+    // se haya unido previamente al sandbox con el código "join ...")
+    const destino = telefono.startsWith('+') ? telefono : `+${telefono}`;
+
+    await client.messages.create({
+      from: `whatsapp:${process.env.TWILIO_PHONE}`,
+      to: `whatsapp:${destino}`,
+      body: mensaje,
     });
   }
 
