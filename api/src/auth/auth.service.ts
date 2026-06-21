@@ -68,22 +68,33 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(datos.admin.password, 10);
 
+    // Se crea la empresa junto con su Sucursal Principal en la misma transacción
     const empresa = await this.prisma.empresa.create({
       data: {
         nombre: datos.empresa.nombre,
         nit: datos.empresa.nit,
         email: datos.empresa.email,
         telefono: datos.empresa.telefono,
-        usuarios: {
+        sucursales: {
           create: {
-            nombre: datos.admin.nombre,
-            email: datos.admin.email,
-            password: passwordHash,
-            rol: 'ADMIN_EMPRESA',
+            nombre: 'Sucursal Principal',
           },
         },
       },
-      include: { usuarios: true },
+      include: { sucursales: true },
+    });
+
+    const sucursalPrincipal = empresa.sucursales[0];
+
+    const admin = await this.prisma.usuario.create({
+      data: {
+        nombre: datos.admin.nombre,
+        email: datos.admin.email,
+        password: passwordHash,
+        rol: 'ADMIN_EMPRESA',
+        empresaId: empresa.id,
+        sucursalId: sucursalPrincipal.id,
+      },
     });
 
     return {
@@ -92,6 +103,10 @@ export class AuthService {
         id: empresa.id,
         nombre: empresa.nombre,
         nit: empresa.nit,
+      },
+      sucursal: {
+        id: sucursalPrincipal.id,
+        nombre: sucursalPrincipal.nombre,
       },
     };
   }

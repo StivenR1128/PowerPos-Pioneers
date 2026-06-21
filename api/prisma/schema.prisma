@@ -73,6 +73,7 @@ model Usuario {
   email         String     @unique
   password      String
   rol           RolUsuario
+  permisos      Json?
   activo        Boolean    @default(true)
   creadoEn      DateTime   @default(now())
   actualizadoEn DateTime   @updatedAt

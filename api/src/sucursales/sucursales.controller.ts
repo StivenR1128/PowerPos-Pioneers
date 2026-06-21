@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { SucursalesService } from './sucursales.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -13,7 +13,12 @@ export class SucursalesController {
   }
 
   @Get()
-  listar(@Request() req: any) {
-    return this.sucursalesService.listar(req.user.empresaId);
+  listar(@Request() req: any, @Query('incluirInactivas') incluirInactivas?: string) {
+    return this.sucursalesService.listar(req.user.empresaId, incluirInactivas === 'true');
+  }
+
+  @Patch(':id/toggle-activo')
+  toggleActivo(@Param('id') id: string, @Request() req: any) {
+    return this.sucursalesService.toggleActivo(+id, req.user.empresaId);
   }
 }

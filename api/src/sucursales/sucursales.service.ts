@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -16,9 +16,19 @@ export class SucursalesService {
     });
   }
 
-  async listar(empresaId: number) {
+  async listar(empresaId: number, incluirInactivas = false) {
     return this.prisma.sucursal.findMany({
-      where: { empresaId, activo: true },
+      where: { empresaId, ...(incluirInactivas ? {} : { activo: true }) },
+      orderBy: { creadoEn: 'asc' },
+    });
+  }
+
+  async toggleActivo(id: number, empresaId: number) {
+    const sucursal = await this.prisma.sucursal.findFirst({ where: { id, empresaId } });
+    if (!sucursal) throw new NotFoundException('Sucursal no encontrada');
+    return this.prisma.sucursal.update({
+      where: { id },
+      data: { activo: !sucursal.activo },
     });
   }
 }
