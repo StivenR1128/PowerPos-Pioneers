@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
@@ -26,6 +27,7 @@ async function main() {
       nit: '900123456-1',
       email: 'admin@donjuancho.com',
       telefono: '3001234567',
+      modoPreparacion: 'COMANDAS',
     },
   });
 
@@ -40,6 +42,20 @@ async function main() {
       empresaId: empresa.id,
     },
   });
+
+  if (process.env.SUPERADMIN_EMAIL && process.env.SUPERADMIN_PASSWORD) {
+    const superadminPassword = await bcrypt.hash(process.env.SUPERADMIN_PASSWORD, 10);
+    await prisma.usuario.create({
+      data: {
+        nombre: process.env.SUPERADMIN_NAME || 'Administrador del sistema',
+        email: process.env.SUPERADMIN_EMAIL,
+        password: superadminPassword,
+        rol: 'SUPERADMIN',
+        permisos: { global: true },
+      },
+    });
+    console.log(`✅ Superadmin creado: ${process.env.SUPERADMIN_EMAIL}`);
+  }
 
   // Sucursal
   await prisma.sucursal.create({

@@ -6,7 +6,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor() {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      jwtFromRequest: (request) => ExtractJwt.fromAuthHeaderAsBearerToken()(request) || request.query?.token,
       ignoreExpiration: false,
       secretOrKey: process.env.JWT_SECRET || 'powerpos_secret_key_2024',
     });

@@ -21,6 +21,8 @@ export default function LoginPage() {
       setAuth(data.access_token, data.usuario);
       switch (data.usuario.rol) {
         case 'SUPERADMIN':
+          router.push('/superadmin');
+          break;
         case 'ADMIN_EMPRESA':
         case 'GERENTE':
           router.push('/dashboard');

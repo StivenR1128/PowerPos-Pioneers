@@ -18,6 +18,11 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { usuario, logout } = useAuthStore();
+  const itemsVisibles = ITEMS.filter((item) => {
+    if (usuario?.rol === 'CAJERO') return item.href === '/pos';
+    if (usuario?.rol === 'ADMIN_EMPRESA' || usuario?.rol === 'GERENTE') return true;
+    return usuario?.permisos?.[item.href.replace('/', '')] !== false;
+  });
 
   const handleLogout = () => { logout(); router.push('/login'); };
 
@@ -29,7 +34,7 @@ export default function Navbar() {
         <span className="text-gray-400 text-sm whitespace-nowrap">{usuario?.empresa}</span>
       </div>
       <div className="flex items-center gap-4 flex-shrink-0">
-        {ITEMS.map((item) => {
+        {itemsVisibles.map((item) => {
           const activo = pathname === item.href;
           const Icon = item.icon;
           return (

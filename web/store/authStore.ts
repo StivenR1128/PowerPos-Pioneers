@@ -7,11 +7,18 @@ interface Usuario {
   email: string;
   rol: string;
   empresa: string;
+  empresaId?: number;
+  sucursalId?: number;
+  plan?: string;
+  permisos?: Record<string, boolean>;
+  modoPreparacion?: 'KDS' | 'COMANDAS';
+  facturacionElectronicaHabilitada?: boolean;
 }
 
 interface AuthStore {
   token: string | null;
   usuario: Usuario | null;
+  inicioSesion: string | null;
   hydrated: boolean;
   setAuth: (token: string, usuario: Usuario) => void;
   logout: () => void;
@@ -23,20 +30,24 @@ export const useAuthStore = create<AuthStore>()(
     (set) => ({
       token: null,
       usuario: null,
+      inicioSesion: null,
       hydrated: false,
       setAuth: (token, usuario) => {
         localStorage.setItem('token', token);
-        set({ token, usuario });
+        set({ token, usuario, inicioSesion: new Date().toISOString() });
       },
       logout: () => {
         localStorage.removeItem('token');
-        set({ token: null, usuario: null });
+        set({ token: null, usuario: null, inicioSesion: null });
       },
       setHydrated: () => set({ hydrated: true }),
     }),
     {
       name: 'auth-storage',
       onRehydrateStorage: () => (state) => {
+        if (state?.inicioSesion && new Date(state.inicioSesion).toDateString() !== new Date().toDateString()) {
+          state.logout();
+        }
         state?.setHydrated();
       },
     }

@@ -17,6 +17,9 @@ import { InventarioModule } from './inventario/inventario.module';
 import { ClientesModule } from './clientes/clientes.module';
 import { TareasModule } from './tareas/tareas.module';
 import { ReportesModule } from './reportes/reportes.module';
+import { ImpresionModule } from './impresion/impresion.module';
+import { SuperadminModule } from './superadmin/superadmin.module';
+import { AuditoriaModule } from './auditoria/auditoria.module';
 
 @Module({
   imports: [
@@ -36,6 +39,9 @@ import { ReportesModule } from './reportes/reportes.module';
     ClientesModule,
     TareasModule,
     ReportesModule,
+    ImpresionModule,
+    SuperadminModule,
+    AuditoriaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

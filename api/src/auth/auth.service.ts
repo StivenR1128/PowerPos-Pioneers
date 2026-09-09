@@ -16,7 +16,7 @@ export class AuthService {
       include: { empresa: true, sucursal: true },
     });
 
-    if (!usuario || !usuario.activo) {
+    if (!usuario || !usuario.activo || (usuario.empresa && !usuario.empresa.activo && usuario.rol !== 'SUPERADMIN')) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
@@ -42,6 +42,12 @@ export class AuthService {
         rol: usuario.rol,
         empresa: usuario.empresa?.nombre,
         sucursal: usuario.sucursal?.nombre,
+        empresaId: usuario.empresaId,
+        sucursalId: usuario.sucursalId,
+        plan: usuario.empresa?.plan,
+        permisos: usuario.empresa?.permisos,
+        modoPreparacion: usuario.empresa?.modoPreparacion,
+        facturacionElectronicaHabilitada: usuario.empresa?.facturacionElectronicaHabilitada,
       },
     };
   }

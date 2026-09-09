@@ -5,14 +5,19 @@ import { useAuthStore } from '@/store/authStore';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const { token, usuario, hydrated } = useAuthStore();
+  const { token, usuario, hydrated, inicioSesion, logout } = useAuthStore();
 
   useEffect(() => {
     if (!hydrated) return;
+    if (inicioSesion && new Date(inicioSesion).toDateString() !== new Date().toDateString()) {
+      logout();
+      router.push('/login');
+      return;
+    }
     if (!token || !usuario) {
       router.push('/login');
     }
-  }, [hydrated, token, usuario]);
+  }, [hydrated, token, usuario, inicioSesion, logout, router]);
 
   if (!hydrated) {
     return (

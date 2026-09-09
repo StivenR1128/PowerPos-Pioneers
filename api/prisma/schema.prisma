@@ -12,6 +12,17 @@ datasource db {
 // MULTIEMPRESA
 // ==========================================
 
+enum PlanEmpresa {
+  BASICO
+  MEDIUM
+  PREMIUM
+}
+
+enum ModoPreparacion {
+  KDS
+  COMANDAS
+}
+
 model Empresa {
   id            Int       @id @default(autoincrement())
   nombre        String
@@ -21,6 +32,10 @@ model Empresa {
   direccion     String?
   logo          String?
   activo        Boolean   @default(true)
+  plan          PlanEmpresa @default(BASICO)
+  permisos      Json      @default("{}")
+  modoPreparacion ModoPreparacion @default(KDS)
+  facturacionElectronicaHabilitada Boolean @default(false)
   creadoEn      DateTime  @default(now())
   actualizadoEn DateTime  @updatedAt
 
@@ -30,6 +45,7 @@ model Empresa {
   productos   Producto[]
   clientes    Cliente[]
   movimientos MovimientoFinanciero[]
+  auditorias  Auditoria[]
 
   @@map("empresas")
 }
@@ -85,6 +101,7 @@ model Usuario {
   eventos     EventoCaja[]
   movimientos MovimientoFinanciero[]
   movimientosInventario MovimientoInventario[]
+  auditorias  Auditoria[]
 
   @@map("usuarios")
 }
@@ -356,4 +373,21 @@ model MovimientoFinanciero {
   pedido   Pedido?  @relation(fields: [pedidoId], references: [id])
 
   @@map("movimientos_financieros")
+}
+
+model Auditoria {
+  id        Int      @id @default(autoincrement())
+  empresaId Int?
+  usuarioId Int?
+  accion    String
+  entidad   String
+  entidadId Int?
+  detalle   Json?
+  creadoEn  DateTime @default(now())
+
+  empresa Empresa? @relation(fields: [empresaId], references: [id])
+  usuario Usuario? @relation(fields: [usuarioId], references: [id])
+
+  @@index([empresaId, creadoEn])
+  @@map("auditorias")
 }

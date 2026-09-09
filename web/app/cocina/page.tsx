@@ -21,16 +21,22 @@ interface Pedido {
 }
 
 export default function CocinaPage() {
-  const { usuario } = useAuthStore();
+  const { usuario, token } = useAuthStore();
   const router = useRouter();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
 
   useEffect(() => {
     if (!usuario) { router.push('/login'); return; }
+    if (usuario.modoPreparacion === 'COMANDAS') { router.replace('/pos'); return; }
     cargarPedidos();
     const intervalo = setInterval(cargarPedidos, 5000);
-    return () => clearInterval(intervalo);
-  }, []);
+    const stream = token ? new EventSource(`http://localhost:3000/pedidos/stream?token=${encodeURIComponent(token)}`) : null;
+    if (stream) stream.onmessage = () => cargarPedidos();
+    return () => {
+      clearInterval(intervalo);
+      stream?.close();
+    };
+  }, [token, usuario, router]);
 
   const cargarPedidos = async () => {
     try {

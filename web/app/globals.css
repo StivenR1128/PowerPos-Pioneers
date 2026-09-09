@@ -23,4 +23,24 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+div.fixed.inset-0.z-50 {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+div.fixed.inset-0.z-50 > div {
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+button,
+input,
+select,
+textarea {
+  max-width: 100%;
 }

@@ -2,7 +2,7 @@ import { Injectable, ConflictException, NotFoundException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 
-const MODULOS = ['pos', 'dashboard', 'productos', 'inventario', 'clientes', 'financiero', 'configuracion'];
+const MODULOS = ['pos', 'dashboard', 'productos', 'inventario', 'clientes', 'financiero', 'reportes', 'cocina', 'configuracion'];
 
 function permisosCompletos() {
   return MODULOS.reduce((acc, modulo) => {

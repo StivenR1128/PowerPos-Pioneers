@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
@@ -39,12 +39,16 @@ export default function POSPage() {
   const [nombreEmpresa, setNombreEmpresa] = useState<string>('');
   const [mounted, setMounted] = useState(false);
   const [logoBase64, setLogoBase64] = useState<string>('');
+  const [ultimoPedido, setUltimoPedido] = useState<string | null>(null);
+  const canalPantalla = useRef<BroadcastChannel | null>(null);
 
   // Cliente asociado al pedido
   const [clienteSeleccionado, setClienteSeleccionado] = useState<any>(null);
   const [busquedaCliente, setBusquedaCliente] = useState('');
   const [resultadosCliente, setResultadosCliente] = useState<any[]>([]);
   const [mostrarDropdownCliente, setMostrarDropdownCliente] = useState(false);
+
+  const total = carrito.reduce((acc, item) => acc + Number(item.producto.precio) * item.cantidad, 0);
 
   useEffect(() => {
     setMounted(true);
@@ -54,6 +58,25 @@ export default function POSPage() {
     if (!mounted) return;
     cargarDatos();
   }, [mounted]);
+
+  useEffect(() => {
+    if (!mounted) return;
+    canalPantalla.current = new BroadcastChannel('powerpos-pantalla-cliente');
+    return () => canalPantalla.current?.close();
+  }, [mounted]);
+
+  useEffect(() => {
+    canalPantalla.current?.postMessage({
+      empresa: nombreEmpresa || 'PowerPOS',
+      items: carrito.map((item) => ({
+        nombre: item.producto.nombre,
+        cantidad: item.cantidad,
+        precio: Number(item.producto.precio),
+      })),
+      total,
+      pedido: ultimoPedido,
+    });
+  }, [carrito, nombreEmpresa, total, ultimoPedido]);
 
   useEffect(() => {
     if (!busquedaCliente) {
@@ -423,6 +446,88 @@ export default function POSPage() {
     }, 800);
   };
 
+  const imprimirComanda = (pedido: any) => {
+    const ventana = window.open('', '_blank', 'width=320,height=700');
+    if (!ventana) return;
+
+    const logoComanda = logoBase64
+      ? `<img src="${logoBase64}" class="logo" />`
+      : `<div class="logo-placeholder">🍔</div>`;
+
+    const contenido = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Comanda ${pedido.numero}</title>
+        <style>
+          * { box-sizing: border-box; }
+          body { width: 300px; margin: 0 auto; padding: 14px 12px; font-family: 'Inter', 'Courier New', monospace; color: #111; background: #fff; font-size: 13px; }
+          .encabezado { text-align: center; border-bottom: 2px dashed #d1d5db; padding-bottom: 12px; margin-bottom: 12px; }
+          .logo { width: 52px; height: 52px; object-fit: cover; border-radius: 12px; margin: 0 auto 6px; display: block; }
+          .logo-placeholder { width: 52px; height: 52px; border-radius: 12px; margin: 0 auto 6px; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #ff6b35, #f7931e); font-size: 24px; }
+          .empresa { font-size: 16px; font-weight: 900; letter-spacing: .3px; }
+          .subtitulo { color: #6b7280; font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; margin-top: 3px; }
+          .barra-pedido { background: #111827; color: #fff; border-radius: 8px; padding: 9px 11px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+          .etiqueta { color: #9ca3af; font-size: 9px; text-transform: uppercase; letter-spacing: 1px; }
+          .numero { color: #ff8a50; font-size: 17px; font-weight: 900; margin-top: 2px; }
+          .estado { color: #d1fae5; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+          .fecha { text-align: center; color: #6b7280; font-size: 10px; margin-bottom: 13px; }
+          .titulo-seccion { color: #6b7280; font-size: 9px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 5px; }
+          .producto { border-bottom: 1px solid #e5e7eb; padding: 9px 0; }
+          .fila { display: flex; gap: 8px; align-items: flex-start; }
+          .cantidad { background: #ff6b35; color: #fff; border-radius: 5px; min-width: 29px; padding: 4px 3px; text-align: center; font-size: 15px; font-weight: 900; }
+          .nombre { font-size: 15px; font-weight: 800; line-height: 1.2; flex: 1; padding-top: 3px; }
+          .detalle { margin: 6px 0 0 37px; font-size: 11px; font-weight: 800; line-height: 1.3; }
+          .sin { color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 4px; padding: 3px 5px; }
+          .nota { color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px; padding: 3px 5px; }
+          .general { background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; margin-top: 12px; padding: 8px; color: #92400e; font-size: 11px; font-weight: 800; line-height: 1.3; }
+          .pie { border-top: 2px dashed #d1d5db; text-align: center; color: #9ca3af; font-size: 9px; margin-top: 14px; padding-top: 10px; }
+          @media print { body { width: 80mm; } }
+        </style>
+      </head>
+      <body>
+        <div class="encabezado">
+          ${logoComanda}
+          <div class="empresa">${nombreEmpresa.toUpperCase()}</div>
+          <div class="subtitulo">Comanda de preparación</div>
+        </div>
+        <div class="barra-pedido">
+          <div><div class="etiqueta">Pedido</div><div class="numero">${pedido.numero}</div></div>
+          <div class="estado">Pendiente</div>
+        </div>
+        <div class="fecha">
+          ${new Date().toLocaleString('es-CO', {
+            weekday: 'short', day: '2-digit', month: 'short',
+            hour: '2-digit', minute: '2-digit'
+          })}
+        </div>
+        <div class="titulo-seccion">Productos</div>
+        ${pedido.detalles.map((detalle: any) => `
+          <div class="producto">
+            <div class="fila">
+              <span class="cantidad">${detalle.cantidad}x</span>
+              <span class="nombre">${detalle.producto.nombre}</span>
+            </div>
+            ${detalle.exclusiones?.length ? `<div class="detalle sin">SIN: ${detalle.exclusiones.join(', ').toUpperCase()}</div>` : ''}
+            ${detalle.observacion ? `<div class="detalle nota">NOTA: ${detalle.observacion}</div>` : ''}
+          </div>
+        `).join('')}
+        ${pedido.observacion ? `<div class="general">NOTA GENERAL: ${pedido.observacion}</div>` : ''}
+        <div class="pie">Preparar y entregar en mostrador</div>
+      </body>
+      </html>
+    `;
+
+    ventana.document.write(contenido);
+    ventana.document.close();
+    ventana.focus();
+    setTimeout(() => {
+      ventana.print();
+      ventana.close();
+    }, 500);
+  };
+
   const productosFiltrados = categoriaActiva
     ? productos.filter((p) => p.categoria?.nombre === categorias.find(c => c.id === categoriaActiva)?.nombre)
     : productos;
@@ -462,14 +567,12 @@ export default function POSPage() {
     });
   };
 
-  const total = carrito.reduce((acc, item) => acc + Number(item.producto.precio) * item.cantidad, 0);
-
   const confirmarPedido = async () => {
     if (carrito.length === 0) return;
     setLoading(true);
     try {
       const { data } = await api.post('/pedidos', {
-        sucursalId: 1,
+        sucursalId: usuario?.sucursalId || 1,
         metodoPago,
         clienteId: clienteSeleccionado?.id || null,
         items: carrito.map((item) => ({
@@ -480,8 +583,20 @@ export default function POSPage() {
         })),
       });
       setPedidoExitoso(data.numero);
+      setUltimoPedido(data.numero);
       setCarrito([]);
       setClienteSeleccionado(null);
+      try {
+        if (usuario?.modoPreparacion === 'COMANDAS') {
+          const impresion = await api.post('/impresion/comanda', data);
+          if (!impresion.data.impreso && impresion.data.fallbackBrowser) imprimirComanda(data);
+        }
+      } catch {
+        imprimirComanda(data);
+      }
+      if (metodoPago === 'EFECTIVO') {
+        api.post('/impresion/abrir-cajon').catch(() => undefined);
+      }
       imprimirTicket(data);
       setTimeout(() => setPedidoExitoso(null), 4000);
     } catch (e) {
@@ -495,6 +610,12 @@ export default function POSPage() {
     <AuthGuard>
       <div className="min-h-screen bg-gray-950 flex flex-col">
         <Navbar />
+
+        {usuario?.rol === 'CAJERO' && (
+          <div className="bg-orange-500/10 border-b border-orange-500/20 text-orange-300 px-4 py-2 text-center text-sm font-semibold">
+            Modo caja · {usuario.sucursalId ? `Sucursal ${usuario.sucursalId}` : 'Sucursal principal'}
+          </div>
+        )}
 
         {pedidoExitoso && (
           <div className="bg-green-500/10 border-b border-green-500/20 text-green-400 text-center py-3 text-sm font-medium">
@@ -648,6 +769,12 @@ export default function POSPage() {
                 className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/30 text-white font-bold rounded-lg py-3 transition-colors"
               >
                 {loading ? 'Procesando...' : 'Confirmar pedido'}
+              </button>
+              <button
+                onClick={() => window.open('/cliente', 'powerpos-pantalla-cliente', 'width=1280,height=800')}
+                className="w-full border border-gray-700 hover:border-orange-500 text-gray-300 hover:text-white rounded-lg py-2 text-sm transition-colors"
+              >
+                Abrir pantalla del cliente
               </button>
             </div>
           </div>

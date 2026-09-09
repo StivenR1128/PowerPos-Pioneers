@@ -62,8 +62,8 @@ export default function DashboardPage() {
   };
 
   const hoy = new Date().toDateString();
-  const pedidosHoy = pedidos.filter(p => new Date(p.creadoEn).toDateString() === hoy);
-  const totalHoy = pedidosHoy.reduce((acc, p) => acc + Number(p.total), 0);
+  const pedidosHoy = estadisticas?.pedidosHoy ?? pedidos.filter(p => new Date(p.creadoEn).toDateString() === hoy).length;
+  const totalHoy = estadisticas?.totalHoy ?? pedidos.filter(p => new Date(p.creadoEn).toDateString() === hoy).reduce((acc, p) => acc + Number(p.total), 0);
   const pendientes = pedidos.filter(p => p.estado === 'PENDIENTE').length;
   const enCocina = pedidos.filter(p => p.estado === 'EN_COCINA').length;
 
@@ -109,7 +109,7 @@ export default function DashboardPage() {
               <span className="text-gray-400 text-sm">Ventas hoy</span>
             </div>
             <div className="text-2xl font-bold text-white">${totalHoy.toLocaleString()}</div>
-            <div className="text-gray-500 text-xs mt-1">{pedidosHoy.length} pedidos</div>
+            <div className="text-gray-500 text-xs mt-1">{pedidosHoy} pedidos</div>
           </div>
 
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
@@ -119,8 +119,8 @@ export default function DashboardPage() {
               </div>
               <span className="text-gray-400 text-sm">Total pedidos</span>
             </div>
-            <div className="text-2xl font-bold text-white">{pedidos.length}</div>
-            <div className="text-gray-500 text-xs mt-1">Todos los tiempos</div>
+            <div className="text-2xl font-bold text-white">{estadisticas?.pedidosHistoricos ?? pedidos.length}</div>
+            <div className="text-gray-500 text-xs mt-1">Histórico de pedidos</div>
           </div>
 
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
@@ -132,6 +132,17 @@ export default function DashboardPage() {
             </div>
             <div className="text-2xl font-bold text-white">{pendientes}</div>
             <div className="text-gray-500 text-xs mt-1">Por atender</div>
+          </div>
+
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="bg-emerald-500/10 p-2 rounded-lg">
+                <DollarSign size={18} className="text-emerald-400" />
+              </div>
+              <span className="text-gray-400 text-sm">Ventas acumuladas</span>
+            </div>
+            <div className="text-2xl font-bold text-white">${Number(estadisticas?.totalHistorico || 0).toLocaleString()}</div>
+            <div className="text-gray-500 text-xs mt-1">Desde el inicio del sistema</div>
           </div>
 
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
@@ -166,6 +177,26 @@ export default function DashboardPage() {
                   />
                   <Line type="monotone" dataKey="total" stroke="#FF6B35" strokeWidth={3} dot={{ fill: '#FF6B35', r: 4 }} />
                 </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Evolución histórica */}
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4 lg:col-span-2">
+              <h3 className="text-white font-semibold mb-4 flex items-center gap-2">
+                <span className="text-xl">📊</span> Evolución de ventas por mes
+              </h3>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={estadisticas.ventasPorMes}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#27272a" />
+                  <XAxis dataKey="mes" stroke="#71717a" fontSize={12} />
+                  <YAxis stroke="#71717a" fontSize={12} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: '#18181b', border: '1px solid #27272a', borderRadius: 8 }}
+                    labelStyle={{ color: '#fff' }}
+                    formatter={(value: any) => [`$${Number(value).toLocaleString()}`, 'Ventas']}
+                  />
+                  <Bar dataKey="total" fill="#10b981" radius={[6, 6, 0, 0]} />
+                </BarChart>
               </ResponsiveContainer>
             </div>
 

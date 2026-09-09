@@ -13,6 +13,7 @@ const MODULOS = [
   { key: 'inventario', label: 'Inventario' },
   { key: 'clientes', label: 'Clientes' },
   { key: 'financiero', label: 'Financiero' },
+  { key: 'cocina', label: 'Cocina / KDS' },
   { key: 'configuracion', label: 'Configuración' },
 ];
 
