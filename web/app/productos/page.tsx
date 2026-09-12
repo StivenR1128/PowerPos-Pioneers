@@ -21,23 +21,37 @@ interface IngredienteReceta {
   stockMinimo?: string;
 }
 
+interface Adicional {
+  id: number;
+  nombre: string;
+  precio: string;
+  ingredienteId: number | null;
+  cantidad: string | null;
+  disponible: boolean;
+  ingrediente?: { id: number; nombre: string; unidad: string } | null;
+}
+
 interface Producto {
   id: number;
   nombre: string;
   descripcion: string;
   precio: string;
   disponible: boolean;
+  aceptaAdicionales: boolean;
   activo: boolean;
   categoria: Categoria;
   ingredientes: { ingrediente: { id: number; nombre: string; unidad: string }; cantidad: string }[];
+  adicionales: { adicional: { id: number; nombre: string; precio: string } }[];
 }
 
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [ingredientesDisponibles, setIngredientesDisponibles] = useState<any[]>([]);
+  const [adicionalesCatalogo, setAdicionalesCatalogo] = useState<Adicional[]>([]);
   const [modal, setModal] = useState(false);
   const [modalCategoria, setModalCategoria] = useState(false);
+  const [modalAdicionales, setModalAdicionales] = useState(false);
   const [editando, setEditando] = useState<Producto | null>(null);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -46,23 +60,34 @@ export default function ProductosPage() {
     precio: '',
     categoriaId: '',
     disponible: true,
+    aceptaAdicionales: true,
   });
   const [recetaTemp, setRecetaTemp] = useState<IngredienteReceta[]>([]);
+  const [adicionalIdsTemp, setAdicionalIdsTemp] = useState<number[]>([]);
   const [formCategoria, setFormCategoria] = useState({ nombre: '', icono: '🍽️', color: '#FF6B35' });
+  const [formAdicional, setFormAdicional] = useState<{ id: number | null; nombre: string; precio: string; ingredienteId: string; cantidad: string }>({
+    id: null,
+    nombre: '',
+    precio: '',
+    ingredienteId: '',
+    cantidad: '',
+  });
 
   useEffect(() => {
     cargarDatos();
   }, []);
 
   const cargarDatos = async () => {
-    const [prods, cats, ings] = await Promise.all([
+    const [prods, cats, ings, adic] = await Promise.all([
       api.get('/productos'),
       api.get('/categorias'),
       api.get('/inventario'),
+      api.get('/adicionales'),
     ]);
     setProductos(prods.data);
     setCategorias(cats.data);
     setIngredientesDisponibles(ings.data);
+    setAdicionalesCatalogo(adic.data);
   };
 
   const abrirModal = (producto?: Producto) => {
@@ -74,6 +99,7 @@ export default function ProductosPage() {
         precio: producto.precio,
         categoriaId: String(producto.categoria.id),
         disponible: producto.disponible,
+        aceptaAdicionales: producto.aceptaAdicionales ?? true,
       });
       setRecetaTemp(
         producto.ingredientes.map((pi) => ({
@@ -83,12 +109,59 @@ export default function ProductosPage() {
           cantidad: String(pi.cantidad),
         }))
       );
+      setAdicionalIdsTemp((producto.adicionales || []).map((pa) => pa.adicional.id));
     } else {
       setEditando(null);
-      setForm({ nombre: '', descripcion: '', precio: '', categoriaId: '', disponible: true });
+      setForm({ nombre: '', descripcion: '', precio: '', categoriaId: '', disponible: true, aceptaAdicionales: true });
       setRecetaTemp([]);
+      setAdicionalIdsTemp([]);
     }
     setModal(true);
+  };
+
+  const toggleAdicionalProducto = (id: number) => {
+    setAdicionalIdsTemp((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const guardarAdicional = async () => {
+    if (!formAdicional.nombre || !formAdicional.precio) return;
+    setLoading(true);
+    try {
+      const payload = {
+        nombre: formAdicional.nombre,
+        precio: Number(formAdicional.precio),
+        ingredienteId: formAdicional.ingredienteId ? Number(formAdicional.ingredienteId) : null,
+        cantidad: formAdicional.cantidad ? Number(formAdicional.cantidad) : null,
+      };
+      if (formAdicional.id) {
+        await api.patch(`/adicionales/${formAdicional.id}`, payload);
+      } else {
+        await api.post('/adicionales', payload);
+      }
+      setFormAdicional({ id: null, nombre: '', precio: '', ingredienteId: '', cantidad: '' });
+      cargarDatos();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const editarAdicional = (adicional: Adicional) => {
+    setFormAdicional({
+      id: adicional.id,
+      nombre: adicional.nombre,
+      precio: String(adicional.precio),
+      ingredienteId: adicional.ingredienteId ? String(adicional.ingredienteId) : '',
+      cantidad: adicional.cantidad ? String(adicional.cantidad) : '',
+    });
+  };
+
+  const eliminarAdicional = async (id: number) => {
+    if (!confirm('¿Desactivar este adicional?')) return;
+    await api.delete(`/adicionales/${id}`);
+    setAdicionalIdsTemp((prev) => prev.filter((x) => x !== id));
+    cargarDatos();
   };
 
   const agregarIngredienteReceta = () => {
@@ -133,6 +206,8 @@ export default function ProductosPage() {
         precio: Number(form.precio),
         categoriaId: Number(form.categoriaId),
         disponible: form.disponible,
+        aceptaAdicionales: form.aceptaAdicionales,
+        adicionalIds: adicionalIdsTemp,
       };
       if (ingredientesPayload.length > 0) {
         payload.ingredientes = ingredientesPayload;
@@ -196,6 +271,13 @@ export default function ProductosPage() {
             >
               <Tag size={16} />
               Nueva categoría
+            </button>
+            <button
+              onClick={() => { setFormAdicional({ id: null, nombre: '', precio: '', ingredienteId: '', cantidad: '' }); setModalAdicionales(true); }}
+              className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg px-4 py-2 transition-colors"
+            >
+              <Plus size={16} />
+              Adicionales
             </button>
             <button
               onClick={() => abrirModal()}
@@ -367,6 +449,19 @@ export default function ProductosPage() {
                 <label htmlFor="disponible" className="text-gray-400 text-sm">Disponible para venta</label>
               </div>
 
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="aceptaAdicionales"
+                  checked={form.aceptaAdicionales}
+                  onChange={(e) => setForm({ ...form, aceptaAdicionales: e.target.checked })}
+                  className="w-4 h-4 accent-orange-500"
+                />
+                <label htmlFor="aceptaAdicionales" className="text-gray-400 text-sm">
+                  Acepta adicionales en el POS <span className="text-gray-600">(desmárcalo en bebidas)</span>
+                </label>
+              </div>
+
               {/* Receta / ingredientes */}
               <div className="border-t border-gray-800 pt-4">
                 <div className="flex items-center justify-between mb-2">
@@ -454,6 +549,50 @@ export default function ProductosPage() {
                   </div>
                 )}
               </div>
+
+              {/* Adicionales disponibles para este producto */}
+              <div className="border-t border-gray-800 pt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm text-gray-400">Adicionales disponibles en el POS</label>
+                  <button
+                    type="button"
+                    onClick={() => { setFormAdicional({ id: null, nombre: '', precio: '', ingredienteId: '', cantidad: '' }); setModalAdicionales(true); }}
+                    className="text-orange-500 text-xs font-medium hover:text-orange-400 transition-colors flex items-center gap-1"
+                  >
+                    <Plus size={14} /> Gestionar catálogo
+                  </button>
+                </div>
+
+                <p className="text-gray-600 text-xs mb-2">
+                  Si no marcas ninguno y el producto &quot;Acepta adicionales&quot;, en el POS se ofrecen todos los
+                  adicionales de la empresa. Si marcas algunos, solo se ofrecen esos.
+                </p>
+
+                {adicionalesCatalogo.length === 0 ? (
+                  <p className="text-gray-600 text-xs text-center py-3">
+                    Aún no hay adicionales. Crea el catálogo con &quot;Gestionar catálogo&quot;.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {adicionalesCatalogo.map((ad) => (
+                      <button
+                        type="button"
+                        key={ad.id}
+                        onClick={() => toggleAdicionalProducto(ad.id)}
+                        className={`px-3 py-2 rounded-lg text-xs transition-colors text-left ${
+                          adicionalIdsTemp.includes(ad.id)
+                            ? 'bg-green-500/20 border border-green-500/50 text-green-400'
+                            : 'bg-gray-800 border border-gray-700 text-gray-300 hover:border-gray-600'
+                        }`}
+                      >
+                        {adicionalIdsTemp.includes(ad.id) ? '✓ ' : ''}
+                        {ad.nombre}
+                        <span className="text-gray-500"> · ${Number(ad.precio).toLocaleString()}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-3 mt-6">
@@ -526,6 +665,117 @@ export default function ProductosPage() {
                 {loading ? 'Creando...' : 'Crear categoría'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal catálogo de adicionales */}
+      {modalAdicionales && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+          <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-lg border border-gray-800 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-bold text-lg">Catálogo de adicionales</h3>
+              <button onClick={() => setModalAdicionales(false)} className="text-gray-500 hover:text-white transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Formulario alta / edición */}
+            <div className="bg-gray-800 rounded-lg p-3 space-y-3 mb-4">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-gray-500 text-xs">Nombre</label>
+                  <input
+                    type="text"
+                    value={formAdicional.nombre}
+                    onChange={(e) => setFormAdicional({ ...formAdicional, nombre: e.target.value })}
+                    placeholder="Ej: Extra queso"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-gray-500 text-xs">Precio</label>
+                  <input
+                    type="number"
+                    value={formAdicional.precio}
+                    onChange={(e) => setFormAdicional({ ...formAdicional, precio: e.target.value })}
+                    placeholder="0"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-gray-500 text-xs">Ingrediente (opcional)</label>
+                  <select
+                    value={formAdicional.ingredienteId}
+                    onChange={(e) => setFormAdicional({ ...formAdicional, ingredienteId: e.target.value })}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-orange-500"
+                  >
+                    <option value="">— Sin descuento de inventario —</option>
+                    {ingredientesDisponibles.map((opt) => (
+                      <option key={opt.id} value={opt.id}>{opt.nombre} ({opt.unidad})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-gray-500 text-xs">Cantidad a descontar</label>
+                  <input
+                    type="number"
+                    value={formAdicional.cantidad}
+                    disabled={!formAdicional.ingredienteId}
+                    onChange={(e) => setFormAdicional({ ...formAdicional, cantidad: e.target.value })}
+                    placeholder="Ej: 20"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1.5 text-white text-xs focus:outline-none focus:border-orange-500 disabled:opacity-40"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {formAdicional.id && (
+                  <button
+                    onClick={() => setFormAdicional({ id: null, nombre: '', precio: '', ingredienteId: '', cantidad: '' })}
+                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white rounded-lg py-2 text-xs transition-colors"
+                  >
+                    Cancelar edición
+                  </button>
+                )}
+                <button
+                  onClick={guardarAdicional}
+                  disabled={loading || !formAdicional.nombre || !formAdicional.precio}
+                  className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/40 text-white font-bold rounded-lg py-2 text-xs transition-colors"
+                >
+                  {formAdicional.id ? 'Guardar cambios' : 'Agregar adicional'}
+                </button>
+              </div>
+            </div>
+
+            {/* Lista */}
+            {adicionalesCatalogo.length === 0 ? (
+              <p className="text-gray-600 text-xs text-center py-4">Todavía no hay adicionales en el catálogo</p>
+            ) : (
+              <div className="space-y-2">
+                {adicionalesCatalogo.map((ad) => (
+                  <div key={ad.id} className="flex items-center gap-2 bg-gray-800 rounded-lg px-3 py-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-white text-sm font-medium">
+                        {ad.nombre} <span className="text-orange-500">${Number(ad.precio).toLocaleString()}</span>
+                      </div>
+                      <div className="text-gray-500 text-xs">
+                        {ad.ingrediente
+                          ? `Descuenta ${ad.cantidad ?? 0} ${ad.ingrediente.unidad} de ${ad.ingrediente.nombre}`
+                          : 'Sin descuento de inventario'}
+                      </div>
+                    </div>
+                    <button onClick={() => editarAdicional(ad)} className="text-gray-500 hover:text-white transition-colors">
+                      <Edit size={15} />
+                    </button>
+                    <button onClick={() => eliminarAdicional(ad.id)} className="text-gray-500 hover:text-red-400 transition-colors">
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

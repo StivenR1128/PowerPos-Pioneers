@@ -7,6 +7,12 @@ import { ShoppingCart, Plus, Minus, Trash2, User, X, Search } from 'lucide-react
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
 
+interface AdicionalProducto {
+  id: number;
+  nombre: string;
+  precio: string;
+}
+
 interface Producto {
   id: number;
   nombre: string;
@@ -14,12 +20,22 @@ interface Producto {
   descripcion: string;
   categoria: { nombre: string; color: string; icono: string };
   ingredientes: { ingrediente: { nombre: string } }[];
+  adicionales?: { adicional: AdicionalProducto }[];
+  aceptaAdicionales?: boolean;
+}
+
+interface AdicionalSeleccionado {
+  adicionalId: number;
+  nombre: string;
+  precio: number;
+  cantidad: number;
 }
 
 interface ItemCarrito {
   producto: Producto;
   cantidad: number;
   exclusiones: string[];
+  adicionales: AdicionalSeleccionado[];
   observacion: string;
 }
 
@@ -29,8 +45,10 @@ export default function POSPage() {
   const [categorias, setCategorias] = useState<any[]>([]);
   const [categoriaActiva, setCategoriaActiva] = useState<number | null>(null);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
+  const [adicionalesCatalogo, setAdicionalesCatalogo] = useState<AdicionalProducto[]>([]);
   const [modalProducto, setModalProducto] = useState<Producto | null>(null);
   const [exclusionesTemp, setExclusionesTemp] = useState<string[]>([]);
+  const [adicionalesTemp, setAdicionalesTemp] = useState<AdicionalSeleccionado[]>([]);
   const [observacionTemp, setObservacionTemp] = useState('');
   const [metodoPago, setMetodoPago] = useState('EFECTIVO');
   const [loading, setLoading] = useState(false);
@@ -39,6 +57,7 @@ export default function POSPage() {
   const [nombreEmpresa, setNombreEmpresa] = useState<string>('');
   const [mounted, setMounted] = useState(false);
   const [logoBase64, setLogoBase64] = useState<string>('');
+  const [modoPreparacion, setModoPreparacion] = useState<'KDS' | 'COMANDAS'>(usuario?.modoPreparacion || 'KDS');
   const [ultimoPedido, setUltimoPedido] = useState<string | null>(null);
   const canalPantalla = useRef<BroadcastChannel | null>(null);
 
@@ -48,7 +67,24 @@ export default function POSPage() {
   const [resultadosCliente, setResultadosCliente] = useState<any[]>([]);
   const [mostrarDropdownCliente, setMostrarDropdownCliente] = useState(false);
 
-  const total = carrito.reduce((acc, item) => acc + Number(item.producto.precio) * item.cantidad, 0);
+  const extrasPorUnidad = (item: ItemCarrito) =>
+    item.adicionales.reduce((acc, a) => acc + a.precio * a.cantidad, 0);
+  const precioLinea = (item: ItemCarrito) =>
+    (Number(item.producto.precio) + extrasPorUnidad(item)) * item.cantidad;
+
+  // Adicionales a mostrar para el producto abierto:
+  //  - si el producto tiene adicionales marcados, se muestran esos (aunque no acepte el catálogo general);
+  //  - si no tiene marcados y "acepta adicionales", se ofrece todo el catálogo de la empresa;
+  //  - si no acepta adicionales (ej. bebidas), no se muestra nada.
+  const adicionalesDelModal: AdicionalProducto[] = !modalProducto
+    ? []
+    : modalProducto.adicionales && modalProducto.adicionales.length > 0
+      ? modalProducto.adicionales.map((a) => a.adicional)
+      : modalProducto.aceptaAdicionales === false
+        ? []
+        : adicionalesCatalogo;
+
+  const total = carrito.reduce((acc, item) => acc + precioLinea(item), 0);
 
   useEffect(() => {
     setMounted(true);
@@ -71,7 +107,8 @@ export default function POSPage() {
       items: carrito.map((item) => ({
         nombre: item.producto.nombre,
         cantidad: item.cantidad,
-        precio: Number(item.producto.precio),
+        precio: Number(item.producto.precio) + extrasPorUnidad(item),
+        adicionales: item.adicionales.map((a) => ({ nombre: a.nombre, cantidad: a.cantidad })),
       })),
       total,
       pedido: ultimoPedido,
@@ -95,14 +132,17 @@ export default function POSPage() {
   }, [busquedaCliente]);
 
   const cargarDatos = async () => {
-    const [cats, prods, empresa] = await Promise.all([
+    const [cats, prods, empresa, adicionales] = await Promise.all([
       api.get('/categorias'),
       api.get('/productos'),
       api.get('/empresa'),
+      api.get('/adicionales'),
     ]);
     setCategorias(cats.data);
     setProductos(prods.data);
+    setAdicionalesCatalogo(adicionales.data);
     setNombreEmpresa(empresa.data.nombre);
+    if (empresa.data.modoPreparacion) setModoPreparacion(empresa.data.modoPreparacion);
 
     if (empresa.data.logo) {
       setLogoEmpresa(empresa.data.logo);
@@ -270,6 +310,17 @@ export default function POSPage() {
             border-radius: 4px;
             margin: 4px 2px 0 26px;
           }
+          .adicion {
+            display: inline-block;
+            background: #f0fff4;
+            border: 1px solid #b2f5c8;
+            color: #276749;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin: 4px 2px 0 26px;
+          }
           .observacion-item {
             display: block;
             color: #f7931e;
@@ -387,10 +438,13 @@ export default function POSPage() {
             <div class="producto-fila">
               <span class="producto-cantidad">${d.cantidad}</span>
               <span class="producto-nombre">${d.producto.nombre}</span>
-              <span class="producto-precio">$${(Number(d.precioUnitario) * d.cantidad).toLocaleString()}</span>
+              <span class="producto-precio">$${Number(d.subtotal).toLocaleString()}</span>
             </div>
             ${d.exclusiones && d.exclusiones.length > 0 ? d.exclusiones.map((exc: string) => `
               <span class="exclusion">✕ SIN ${exc.toUpperCase()}</span>
+            `).join('') : ''}
+            ${d.adicionales && d.adicionales.length > 0 ? d.adicionales.map((ad: any) => `
+              <span class="adicion">ADIC: ${ad.nombre.toUpperCase()}${ad.cantidad > 1 ? ` x${ad.cantidad}` : ''} ($${Number(ad.precio).toLocaleString()})</span>
             `).join('') : ''}
             ${d.observacion ? `<span class="observacion-item">📝 ${d.observacion}</span>` : ''}
           </div>
@@ -480,6 +534,7 @@ export default function POSPage() {
           .nombre { font-size: 15px; font-weight: 800; line-height: 1.2; flex: 1; padding-top: 3px; }
           .detalle { margin: 6px 0 0 37px; font-size: 11px; font-weight: 800; line-height: 1.3; }
           .sin { color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 4px; padding: 3px 5px; }
+          .con { color: #276749; background: #f0fff4; border: 1px solid #b2f5c8; border-radius: 4px; padding: 3px 5px; }
           .nota { color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 4px; padding: 3px 5px; }
           .general { background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; margin-top: 12px; padding: 8px; color: #92400e; font-size: 11px; font-weight: 800; line-height: 1.3; }
           .pie { border-top: 2px dashed #d1d5db; text-align: center; color: #9ca3af; font-size: 9px; margin-top: 14px; padding-top: 10px; }
@@ -510,6 +565,7 @@ export default function POSPage() {
               <span class="nombre">${detalle.producto.nombre}</span>
             </div>
             ${detalle.exclusiones?.length ? `<div class="detalle sin">SIN: ${detalle.exclusiones.join(', ').toUpperCase()}</div>` : ''}
+            ${detalle.adicionales?.length ? `<div class="detalle con">ADIC: ${detalle.adicionales.map((a: any) => `${a.nombre}${a.cantidad > 1 ? ` x${a.cantidad}` : ''}`).join(', ').toUpperCase()}</div>` : ''}
             ${detalle.observacion ? `<div class="detalle nota">NOTA: ${detalle.observacion}</div>` : ''}
           </div>
         `).join('')}
@@ -535,6 +591,7 @@ export default function POSPage() {
   const abrirModal = (producto: Producto) => {
     setModalProducto(producto);
     setExclusionesTemp([]);
+    setAdicionalesTemp([]);
     setObservacionTemp('');
   };
 
@@ -544,16 +601,40 @@ export default function POSPage() {
     );
   };
 
+  const toggleAdicional = (adicional: AdicionalProducto) => {
+    setAdicionalesTemp((prev) =>
+      prev.some((a) => a.adicionalId === adicional.id)
+        ? prev.filter((a) => a.adicionalId !== adicional.id)
+        : [...prev, { adicionalId: adicional.id, nombre: adicional.nombre, precio: Number(adicional.precio), cantidad: 1 }]
+    );
+  };
+
+  const cambiarCantidadAdicional = (adicionalId: number, delta: number) => {
+    setAdicionalesTemp((prev) =>
+      prev
+        .map((a) => (a.adicionalId === adicionalId ? { ...a, cantidad: a.cantidad + delta } : a))
+        .filter((a) => a.cantidad > 0)
+    );
+  };
+
   const agregarAlCarrito = () => {
     if (!modalProducto) return;
+    const claveAdicionales = JSON.stringify(
+      [...adicionalesTemp].sort((a, b) => a.adicionalId - b.adicionalId)
+    );
     setCarrito((prev) => {
-      const existe = prev.findIndex((i) => i.producto.id === modalProducto.id && JSON.stringify(i.exclusiones) === JSON.stringify(exclusionesTemp));
+      const existe = prev.findIndex(
+        (i) =>
+          i.producto.id === modalProducto.id &&
+          JSON.stringify(i.exclusiones) === JSON.stringify(exclusionesTemp) &&
+          JSON.stringify([...i.adicionales].sort((a, b) => a.adicionalId - b.adicionalId)) === claveAdicionales
+      );
       if (existe >= 0) {
         const nuevo = [...prev];
         nuevo[existe].cantidad += 1;
         return nuevo;
       }
-      return [...prev, { producto: modalProducto, cantidad: 1, exclusiones: exclusionesTemp, observacion: observacionTemp }];
+      return [...prev, { producto: modalProducto, cantidad: 1, exclusiones: exclusionesTemp, adicionales: adicionalesTemp, observacion: observacionTemp }];
     });
     setModalProducto(null);
   };
@@ -579,6 +660,7 @@ export default function POSPage() {
           productoId: item.producto.id,
           cantidad: item.cantidad,
           exclusiones: item.exclusiones,
+          adicionales: item.adicionales.map((a) => ({ adicionalId: a.adicionalId, cantidad: a.cantidad })),
           observacion: item.observacion,
         })),
       });
@@ -586,18 +668,29 @@ export default function POSPage() {
       setUltimoPedido(data.numero);
       setCarrito([]);
       setClienteSeleccionado(null);
-      try {
-        if (usuario?.modoPreparacion === 'COMANDAS') {
+      if (modoPreparacion === 'COMANDAS') {
+        try {
           const impresion = await api.post('/impresion/comanda', data);
-          if (!impresion.data.impreso && impresion.data.fallbackBrowser) imprimirComanda(data);
+          // Si la impresora física no imprimió (ESC/POS desactivado o sin configurar),
+          // se abre la comanda en el navegador para pasarla a cocina.
+          if (!impresion.data.impreso) imprimirComanda(data);
+        } catch {
+          imprimirComanda(data);
         }
-      } catch {
-        imprimirComanda(data);
       }
       if (metodoPago === 'EFECTIVO') {
         api.post('/impresion/abrir-cajon').catch(() => undefined);
       }
-      imprimirTicket(data);
+
+      try {
+        const respuestaTicket = await api.post('/impresion/ticket', data);
+        if (!respuestaTicket.data.impreso && respuestaTicket.data.fallbackBrowser) {
+          imprimirTicket(data);
+        }
+      } catch {
+        imprimirTicket(data);
+      }
+
       setTimeout(() => setPedidoExitoso(null), 4000);
     } catch (e) {
       alert('Error al registrar el pedido');
@@ -721,8 +814,17 @@ export default function POSPage() {
                       {item.exclusiones.length > 0 && (
                         <div className="text-red-400 text-xs mt-1">Sin: {item.exclusiones.join(', ')}</div>
                       )}
+                      {item.adicionales.length > 0 && (
+                        <div className="text-green-400 text-xs mt-1">
+                          {item.adicionales.map((a) => (
+                            <div key={a.adicionalId}>
+                              + {a.nombre}{a.cantidad > 1 ? ` x${a.cantidad}` : ''} (${(a.precio * a.cantidad).toLocaleString()})
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <div className="text-orange-500 text-sm font-bold mt-1">
-                        ${(Number(item.producto.precio) * item.cantidad).toLocaleString()}
+                        ${precioLinea(item).toLocaleString()}
                       </div>
                     </div>
                     <button onClick={() => cambiarCantidad(index, -item.cantidad)} className="text-gray-600 hover:text-red-400 transition-colors">
@@ -808,6 +910,50 @@ export default function POSPage() {
                 </div>
               )}
 
+              {adicionalesDelModal.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-gray-400 text-sm mb-2">¿Desea agregar adicionales?</p>
+                  <div className="space-y-2">
+                    {adicionalesDelModal.map((adicional) => {
+                      const sel = adicionalesTemp.find((a) => a.adicionalId === adicional.id);
+                      return (
+                        <div
+                          key={adicional.id}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                            sel
+                              ? 'bg-green-500/20 border border-green-500/50 text-green-400'
+                              : 'bg-gray-800 border border-gray-700 text-gray-300'
+                          }`}
+                        >
+                          <button onClick={() => toggleAdicional(adicional)} className="flex-1 text-left">
+                            {sel ? '✓ ' : '+ '}
+                            {adicional.nombre}
+                            <span className="text-gray-500"> · ${Number(adicional.precio).toLocaleString()}</span>
+                          </button>
+                          {sel && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => cambiarCantidadAdicional(adicional.id, -1)}
+                                className="bg-gray-700 hover:bg-gray-600 text-white rounded w-5 h-5 flex items-center justify-center"
+                              >
+                                <Minus size={10} />
+                              </button>
+                              <span className="text-white text-xs w-4 text-center">{sel.cantidad}</span>
+                              <button
+                                onClick={() => cambiarCantidadAdicional(adicional.id, 1)}
+                                className="bg-gray-700 hover:bg-gray-600 text-white rounded w-5 h-5 flex items-center justify-center"
+                              >
+                                <Plus size={10} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="mb-4">
                 <p className="text-gray-400 text-sm mb-2">Observación</p>
                 <input
@@ -830,7 +976,10 @@ export default function POSPage() {
                   onClick={agregarAlCarrito}
                   className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg py-3 transition-colors"
                 >
-                  Agregar
+                  Agregar · ${(
+                    Number(modalProducto.precio) +
+                    adicionalesTemp.reduce((acc, a) => acc + a.precio * a.cantidad, 0)
+                  ).toLocaleString()}
                 </button>
               </div>
             </div>

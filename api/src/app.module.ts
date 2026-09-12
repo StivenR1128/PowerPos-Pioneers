@@ -6,6 +6,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { CategoriasModule } from './categorias/categorias.module';
 import { ProductosModule } from './productos/productos.module';
+import { AdicionalesModule } from './adicionales/adicionales.module';
 import { PedidosModule } from './pedidos/pedidos.module';
 import { SucursalesModule } from './sucursales/sucursales.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
@@ -29,6 +30,7 @@ import { AuditoriaModule } from './auditoria/auditoria.module';
     NotificacionesModule,
     CategoriasModule,
     ProductosModule,
+    AdicionalesModule,
     PedidosModule,
     SucursalesModule,
     UsuariosModule,

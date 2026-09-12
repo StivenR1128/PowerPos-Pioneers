@@ -15,6 +15,7 @@ interface Pedido {
     id: number;
     cantidad: number;
     exclusiones: string[];
+    adicionales: { nombre: string; cantidad: number }[];
     observacion: string;
     producto: { nombre: string };
   }[];
@@ -143,6 +144,17 @@ export default function CocinaPage() {
                                 <div key={exc} className="flex items-center gap-1 text-red-400 text-xs font-medium">
                                   <span className="bg-red-500/20 border border-red-500/30 rounded px-1.5 py-0.5">
                                     ✕ Sin {exc}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {detalle.adicionales?.length > 0 && (
+                            <div className="mt-1 space-y-0.5">
+                              {detalle.adicionales.map((ad, i) => (
+                                <div key={i} className="flex items-center gap-1 text-green-400 text-xs font-medium">
+                                  <span className="bg-green-500/20 border border-green-500/30 rounded px-1.5 py-0.5">
+                                    + Con {ad.nombre}{ad.cantidad > 1 ? ` x${ad.cantidad}` : ''}
                                   </span>
                                 </div>
                               ))}

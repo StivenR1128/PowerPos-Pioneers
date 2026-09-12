@@ -46,6 +46,7 @@ model Empresa {
   clientes    Cliente[]
   movimientos MovimientoFinanciero[]
   auditorias  Auditoria[]
+  adicionales Adicional[]
 
   @@map("empresas")
 }
@@ -135,6 +136,7 @@ model Producto {
   precio        Decimal  @db.Decimal(10, 2)
   imagen        String?
   disponible    Boolean  @default(true)
+  aceptaAdicionales Boolean @default(true)
   activo        Boolean  @default(true)
   creadoEn      DateTime @default(now())
   actualizadoEn DateTime @updatedAt
@@ -142,6 +144,7 @@ model Producto {
   empresa        Empresa               @relation(fields: [empresaId], references: [id])
   categoria      Categoria             @relation(fields: [categoriaId], references: [id])
   ingredientes   ProductoIngrediente[]
+  adicionales    ProductoAdicional[]
   detallesPedido DetallePedido[]
 
   @@map("productos")
@@ -161,6 +164,7 @@ model Ingrediente {
 
   productos    ProductoIngrediente[]
   movimientos  MovimientoInventario[]
+  adicionales  Adicional[]
 
   @@map("ingredientes")
 }
@@ -194,6 +198,42 @@ model ProductoIngrediente {
 
   @@unique([productoId, ingredienteId])
   @@map("producto_ingredientes")
+}
+
+// ==========================================
+// ADICIONALES (extras con costo)
+// ==========================================
+
+model Adicional {
+  id            Int      @id @default(autoincrement())
+  empresaId     Int
+  nombre        String
+  precio        Decimal  @db.Decimal(10, 2)
+  ingredienteId Int?
+  cantidad      Decimal? @db.Decimal(10, 3) // consumo de inventario por 1 unidad de adicional
+  disponible    Boolean  @default(true)
+  activo        Boolean  @default(true)
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  empresa     Empresa                  @relation(fields: [empresaId], references: [id])
+  ingrediente Ingrediente?             @relation(fields: [ingredienteId], references: [id])
+  productos   ProductoAdicional[]
+  detalles    DetallePedidoAdicional[]
+
+  @@map("adicionales")
+}
+
+model ProductoAdicional {
+  id          Int @id @default(autoincrement())
+  productoId  Int
+  adicionalId Int
+
+  producto  Producto  @relation(fields: [productoId], references: [id])
+  adicional Adicional @relation(fields: [adicionalId], references: [id])
+
+  @@unique([productoId, adicionalId])
+  @@map("producto_adicionales")
 }
 
 // ==========================================
@@ -272,10 +312,26 @@ model DetallePedido {
   exclusiones    String[]
   observacion    String?
 
-  pedido   Pedido   @relation(fields: [pedidoId], references: [id])
-  producto Producto @relation(fields: [productoId], references: [id])
+  pedido      Pedido                   @relation(fields: [pedidoId], references: [id])
+  producto    Producto                 @relation(fields: [productoId], references: [id])
+  adicionales DetallePedidoAdicional[]
 
   @@map("detalle_pedidos")
+}
+
+model DetallePedidoAdicional {
+  id              Int     @id @default(autoincrement())
+  detallePedidoId Int
+  adicionalId     Int
+  nombre          String // snapshot del nombre al momento de la venta
+  precio          Decimal @db.Decimal(10, 2) // snapshot del precio unitario
+  cantidad        Int     @default(1) // unidades del adicional por unidad de producto
+  subtotal        Decimal @db.Decimal(10, 2) // precio * cantidad * detalle.cantidad
+
+  detalle   DetallePedido @relation(fields: [detallePedidoId], references: [id])
+  adicional Adicional     @relation(fields: [adicionalId], references: [id])
+
+  @@map("detalle_pedido_adicionales")
 }
 
 // ==========================================

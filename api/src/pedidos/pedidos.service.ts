@@ -1,23 +1,40 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PedidosEventosService } from './pedidos-eventos.service';
 
 @Injectable()
 export class PedidosService {
-  constructor(private prisma: PrismaService, private readonly eventos: PedidosEventosService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly eventos: PedidosEventosService,
+  ) {}
 
   async crearPedido(datos: any, usuarioId: number, empresaId: number) {
-    const { items, metodoPago, clienteId, observacion, sucursalId, cajaId } = datos;
+    const { items, metodoPago, clienteId, observacion, sucursalId, cajaId } =
+      datos;
 
-    const sucursal = await this.prisma.sucursal.findFirst({ where: { id: sucursalId, empresaId, activo: true } });
-    if (!sucursal) throw new NotFoundException('Sucursal no encontrada para esta empresa');
+    const sucursal = await this.prisma.sucursal.findFirst({
+      where: { id: sucursalId, empresaId, activo: true },
+    });
+    if (!sucursal)
+      throw new NotFoundException('Sucursal no encontrada para esta empresa');
     if (clienteId) {
-      const cliente = await this.prisma.cliente.findFirst({ where: { id: clienteId, empresaId, activo: true } });
-      if (!cliente) throw new NotFoundException('Cliente no encontrado para esta empresa');
+      const cliente = await this.prisma.cliente.findFirst({
+        where: { id: clienteId, empresaId, activo: true },
+      });
+      if (!cliente)
+        throw new NotFoundException('Cliente no encontrado para esta empresa');
     }
     if (cajaId) {
-      const caja = await this.prisma.caja.findFirst({ where: { id: cajaId, sucursalId, usuarioId } });
-      if (!caja) throw new NotFoundException('Caja no encontrada para este usuario');
+      const caja = await this.prisma.caja.findFirst({
+        where: { id: cajaId, sucursalId, usuarioId },
+      });
+      if (!caja)
+        throw new NotFoundException('Caja no encontrada para este usuario');
     }
 
     let subtotal = 0;
@@ -26,18 +43,73 @@ export class PedidosService {
     for (const item of items) {
       const producto = await this.prisma.producto.findFirst({
         where: { id: item.productoId, empresaId, activo: true },
-        include: { ingredientes: { include: { ingrediente: true } } },
+        include: {
+          ingredientes: { include: { ingrediente: true } },
+          adicionales: {
+            include: { adicional: { include: { ingrediente: true } } },
+          },
+        },
       });
 
       if (!producto) {
-        throw new NotFoundException(`Producto ${item.productoId} no encontrado`);
+        throw new NotFoundException(
+          `Producto ${item.productoId} no encontrado`,
+        );
       }
 
       if (!producto.disponible) {
         throw new BadRequestException(`${producto.nombre} no está disponible`);
       }
 
-      const itemSubtotal = Number(producto.precio) * item.cantidad;
+      // Adicionales habilitados para este producto: los marcados en el producto,
+      // o todo el catálogo activo de la empresa si el producto no tiene ninguno marcado
+      // y "aceptaAdicionales" (las bebidas suelen tenerlo en false).
+      const adicionalesPermitidos = new Map<number, any>();
+      if (producto.adicionales.length > 0) {
+        for (const pa of producto.adicionales) {
+          if (pa.adicional.activo && pa.adicional.disponible) {
+            adicionalesPermitidos.set(pa.adicional.id, pa.adicional);
+          }
+        }
+      } else if (
+        producto.aceptaAdicionales &&
+        Array.isArray(item.adicionales) &&
+        item.adicionales.length > 0
+      ) {
+        const catalogo = await this.prisma.adicional.findMany({
+          where: { empresaId, activo: true, disponible: true },
+          include: { ingrediente: true },
+        });
+        for (const ad of catalogo) adicionalesPermitidos.set(ad.id, ad);
+      }
+
+      const adicionalesValidados = [];
+      let extrasPorUnidad = 0;
+      for (const solicitud of Array.isArray(item.adicionales)
+        ? item.adicionales
+        : []) {
+        const adicional = adicionalesPermitidos.get(solicitud.adicionalId);
+        if (!adicional) {
+          throw new BadRequestException(
+            `El adicional ${solicitud.adicionalId} no está disponible para ${producto.nombre}`,
+          );
+        }
+        const cantidadAdicional = Math.max(
+          1,
+          Math.floor(Number(solicitud.cantidad) || 1),
+        );
+        const precioAdicional = Number(adicional.precio);
+        extrasPorUnidad += precioAdicional * cantidadAdicional;
+        adicionalesValidados.push({
+          adicional,
+          cantidad: cantidadAdicional,
+          precio: precioAdicional,
+          subtotal: precioAdicional * cantidadAdicional * item.cantidad,
+        });
+      }
+
+      const itemSubtotal =
+        (Number(producto.precio) + extrasPorUnidad) * item.cantidad;
       subtotal += itemSubtotal;
 
       itemsValidados.push({
@@ -45,6 +117,7 @@ export class PedidosService {
         cantidad: item.cantidad,
         exclusiones: item.exclusiones || [],
         observacion: item.observacion || null,
+        adicionales: adicionalesValidados,
         subtotal: itemSubtotal,
       });
     }
@@ -71,15 +144,33 @@ export class PedidosService {
           create: itemsValidados.map((item) => ({
             productoId: item.producto.id,
             cantidad: item.cantidad,
+            // precioUnitario guarda el precio base del producto; subtotal ya incluye adicionales
             precioUnitario: item.producto.precio,
             subtotal: item.subtotal,
             exclusiones: item.exclusiones,
             observacion: item.observacion,
+            adicionales:
+              item.adicionales.length > 0
+                ? {
+                    create: item.adicionales.map((a) => ({
+                      adicionalId: a.adicional.id,
+                      nombre: a.adicional.nombre,
+                      precio: a.precio,
+                      cantidad: a.cantidad,
+                      subtotal: a.subtotal,
+                    })),
+                  }
+                : undefined,
           })),
         },
       },
       include: {
-        detalles: { include: { producto: true } },
+        detalles: {
+          include: {
+            producto: true,
+            adicionales: { include: { adicional: true } },
+          },
+        },
         usuario: { select: { nombre: true } },
         cliente: { select: { nombre: true } },
       },
@@ -113,7 +204,11 @@ export class PedidosService {
       }
     }
 
-    this.eventos.emitir(empresaId, { tipo: 'CREADO', pedidoId: pedido.id, estado: pedido.estado });
+    this.eventos.emitir(empresaId, {
+      tipo: 'CREADO',
+      pedidoId: pedido.id,
+      estado: pedido.estado,
+    });
 
     return pedido;
   }
@@ -139,6 +234,22 @@ export class PedidosService {
           });
         }
       }
+
+      // Descontar inventario de los adicionales enlazados a un ingrediente
+      for (const adicionalValidado of item.adicionales || []) {
+        const { adicional } = adicionalValidado;
+        if (adicional.ingredienteId && adicional.cantidad) {
+          const cantidadADescontar =
+            Number(adicional.cantidad) *
+            adicionalValidado.cantidad *
+            item.cantidad;
+
+          await this.prisma.ingrediente.update({
+            where: { id: adicional.ingredienteId },
+            data: { stock: { decrement: cantidadADescontar } },
+          });
+        }
+      }
     }
   }
 
@@ -149,7 +260,12 @@ export class PedidosService {
         ...(sucursalId && { sucursalId }),
       },
       include: {
-        detalles: { include: { producto: true } },
+        detalles: {
+          include: {
+            producto: true,
+            adicionales: { include: { adicional: true } },
+          },
+        },
         usuario: { select: { nombre: true } },
         cliente: { select: { nombre: true } },
       },
@@ -162,7 +278,14 @@ export class PedidosService {
     const pedido = await this.prisma.pedido.findFirst({
       where: { id, sucursal: { empresaId } },
       include: {
-        detalles: { include: { producto: { include: { ingredientes: { include: { ingrediente: true } } } } } },
+        detalles: {
+          include: {
+            producto: {
+              include: { ingredientes: { include: { ingrediente: true } } },
+            },
+            adicionales: { include: { adicional: true } },
+          },
+        },
         usuario: { select: { nombre: true } },
         cliente: { select: { nombre: true } },
         sucursal: { select: { nombre: true } },
@@ -173,13 +296,19 @@ export class PedidosService {
   }
 
   async actualizarEstado(id: number, estado: string, empresaId: number) {
-    const pedido = await this.prisma.pedido.findFirst({ where: { id, sucursal: { empresaId } } });
+    const pedido = await this.prisma.pedido.findFirst({
+      where: { id, sucursal: { empresaId } },
+    });
     if (!pedido) throw new NotFoundException('Pedido no encontrado');
     const actualizado = await this.prisma.pedido.update({
       where: { id },
       data: { estado: estado as any },
     });
-    this.eventos.emitir(empresaId, { tipo: 'ACTUALIZADO', pedidoId: id, estado: actualizado.estado });
+    this.eventos.emitir(empresaId, {
+      tipo: 'ACTUALIZADO',
+      pedidoId: id,
+      estado: actualizado.estado,
+    });
     return actualizado;
   }
 
@@ -202,24 +331,38 @@ export class PedidosService {
     for (let i = 6; i >= 0; i--) {
       const fecha = new Date();
       fecha.setDate(fecha.getDate() - i);
-      const clave = fecha.toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric' });
+      const clave = fecha.toLocaleDateString('es-CO', {
+        weekday: 'short',
+        day: 'numeric',
+      });
       ventasPorDiaMap.set(clave, 0);
     }
     for (const pedido of pedidos) {
       if (new Date(pedido.creadoEn) < haceTreintaDias) continue;
-      const clave = new Date(pedido.creadoEn).toLocaleDateString('es-CO', { weekday: 'short', day: 'numeric' });
+      const clave = new Date(pedido.creadoEn).toLocaleDateString('es-CO', {
+        weekday: 'short',
+        day: 'numeric',
+      });
       if (ventasPorDiaMap.has(clave)) {
-        ventasPorDiaMap.set(clave, ventasPorDiaMap.get(clave)! + Number(pedido.total));
+        ventasPorDiaMap.set(
+          clave,
+          ventasPorDiaMap.get(clave) + Number(pedido.total),
+        );
       }
     }
-    const ventasPorDia = Array.from(ventasPorDiaMap.entries()).map(([dia, total]) => ({ dia, total }));
+    const ventasPorDia = Array.from(ventasPorDiaMap.entries()).map(
+      ([dia, total]) => ({ dia, total }),
+    );
 
     // Productos más vendidos
     const productosMap = new Map<string, number>();
     for (const pedido of pedidos) {
       for (const detalle of pedido.detalles) {
         const nombre = detalle.producto.nombre;
-        productosMap.set(nombre, (productosMap.get(nombre) || 0) + detalle.cantidad);
+        productosMap.set(
+          nombre,
+          (productosMap.get(nombre) || 0) + detalle.cantidad,
+        );
       }
     }
     const productosMasVendidos = Array.from(productosMap.entries())
@@ -230,53 +373,82 @@ export class PedidosService {
     // Ventas por método de pago
     const metodoPagoMap = new Map<string, number>();
     for (const pedido of pedidos) {
-      metodoPagoMap.set(pedido.metodoPago, (metodoPagoMap.get(pedido.metodoPago) || 0) + Number(pedido.total));
+      metodoPagoMap.set(
+        pedido.metodoPago,
+        (metodoPagoMap.get(pedido.metodoPago) || 0) + Number(pedido.total),
+      );
     }
-    const ventasPorMetodoPago = Array.from(metodoPagoMap.entries()).map(([metodo, total]) => ({ metodo, total }));
+    const ventasPorMetodoPago = Array.from(metodoPagoMap.entries()).map(
+      ([metodo, total]) => ({ metodo, total }),
+    );
 
     // Ventas por categoría
     const categoriaMap = new Map<string, number>();
     for (const pedido of pedidos) {
       for (const detalle of pedido.detalles) {
         const categoria = detalle.producto.categoria?.nombre || 'Sin categoría';
-        categoriaMap.set(categoria, (categoriaMap.get(categoria) || 0) + Number(detalle.subtotal));
+        categoriaMap.set(
+          categoria,
+          (categoriaMap.get(categoria) || 0) + Number(detalle.subtotal),
+        );
       }
     }
-    const ventasPorCategoria = Array.from(categoriaMap.entries()).map(([categoria, total]) => ({ categoria, total }));
+    const ventasPorCategoria = Array.from(categoriaMap.entries()).map(
+      ([categoria, total]) => ({ categoria, total }),
+    );
 
     const ventasPorMesMap = new Map<string, number>();
     for (let i = 11; i >= 0; i--) {
       const fecha = new Date();
       fecha.setDate(1);
       fecha.setMonth(fecha.getMonth() - i);
-      const clave = fecha.toLocaleDateString('es-CO', { month: 'short', year: 'numeric' });
+      const clave = fecha.toLocaleDateString('es-CO', {
+        month: 'short',
+        year: 'numeric',
+      });
       ventasPorMesMap.set(clave, 0);
     }
     for (const pedido of pedidos) {
       const fecha = new Date(pedido.creadoEn);
-      const clave = fecha.toLocaleDateString('es-CO', { month: 'short', year: 'numeric' });
+      const clave = fecha.toLocaleDateString('es-CO', {
+        month: 'short',
+        year: 'numeric',
+      });
       if (ventasPorMesMap.has(clave)) {
-        ventasPorMesMap.set(clave, ventasPorMesMap.get(clave)! + Number(pedido.total));
+        ventasPorMesMap.set(
+          clave,
+          ventasPorMesMap.get(clave) + Number(pedido.total),
+        );
       }
     }
 
     const hoy = new Date();
     const pedidosHoy = pedidos.filter((pedido) => {
       const fecha = new Date(pedido.creadoEn);
-      return fecha.getFullYear() === hoy.getFullYear() &&
+      return (
+        fecha.getFullYear() === hoy.getFullYear() &&
         fecha.getMonth() === hoy.getMonth() &&
-        fecha.getDate() === hoy.getDate();
+        fecha.getDate() === hoy.getDate()
+      );
     });
 
     return {
       ventasPorDia,
-      ventasPorMes: Array.from(ventasPorMesMap.entries()).map(([mes, total]) => ({ mes, total })),
+      ventasPorMes: Array.from(ventasPorMesMap.entries()).map(
+        ([mes, total]) => ({ mes, total }),
+      ),
       productosMasVendidos,
       ventasPorMetodoPago,
       ventasPorCategoria,
-      totalHistorico: pedidos.reduce((acc, pedido) => acc + Number(pedido.total), 0),
+      totalHistorico: pedidos.reduce(
+        (acc, pedido) => acc + Number(pedido.total),
+        0,
+      ),
       pedidosHistoricos: pedidos.length,
-      totalHoy: pedidosHoy.reduce((acc, pedido) => acc + Number(pedido.total), 0),
+      totalHoy: pedidosHoy.reduce(
+        (acc, pedido) => acc + Number(pedido.total),
+        0,
+      ),
       pedidosHoy: pedidosHoy.length,
     };
   }

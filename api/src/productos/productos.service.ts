@@ -6,32 +6,45 @@ export class ProductosService {
   constructor(private prisma: PrismaService) {}
 
   async crear(datos: any, empresaId: number) {
-    const { ingredientes, ...productoData } = datos;
+    const { ingredientes, adicionalIds, ...productoData } = datos;
 
     return this.prisma.producto.create({
       data: {
         ...productoData,
         empresaId,
-        ingredientes: ingredientes ? {
-          create: ingredientes.map((ing: any) => ({
-            cantidad: ing.cantidad,
-            ingrediente: {
-              connectOrCreate: {
-                where: { id: ing.ingredienteId || 0 },
-                create: {
-                  nombre: ing.nombre,
-                  unidad: ing.unidad,
-                  stock: ing.stockInicial || 0,
-                  stockMinimo: ing.stockMinimo || 0,
+        ingredientes: ingredientes
+          ? {
+              create: ingredientes.map((ing: any) => ({
+                cantidad: ing.cantidad,
+                ingrediente: {
+                  connectOrCreate: {
+                    where: { id: ing.ingredienteId || 0 },
+                    create: {
+                      nombre: ing.nombre,
+                      unidad: ing.unidad,
+                      stock: ing.stockInicial || 0,
+                      stockMinimo: ing.stockMinimo || 0,
+                    },
+                  },
                 },
-              },
-            },
-          })),
-        } : undefined,
+              })),
+            }
+          : undefined,
+        adicionales:
+          Array.isArray(adicionalIds) && adicionalIds.length > 0
+            ? {
+                create: adicionalIds.map((adicionalId: number) => ({
+                  adicionalId,
+                })),
+              }
+            : undefined,
       },
       include: {
         categoria: true,
         ingredientes: { include: { ingrediente: true } },
+        adicionales: {
+          include: { adicional: { include: { ingrediente: true } } },
+        },
       },
     });
   }
@@ -46,6 +59,9 @@ export class ProductosService {
       include: {
         categoria: true,
         ingredientes: { include: { ingrediente: true } },
+        adicionales: {
+          include: { adicional: { include: { ingrediente: true } } },
+        },
       },
       orderBy: { nombre: 'asc' },
     });
@@ -57,6 +73,9 @@ export class ProductosService {
       include: {
         categoria: true,
         ingredientes: { include: { ingrediente: true } },
+        adicionales: {
+          include: { adicional: { include: { ingrediente: true } } },
+        },
       },
     });
     if (!producto) throw new NotFoundException('Producto no encontrado');
@@ -65,7 +84,23 @@ export class ProductosService {
 
   async actualizar(id: number, datos: any, empresaId: number) {
     await this.obtener(id, empresaId);
-    const { ingredientes, ...productoData } = datos;
+    const { ingredientes, adicionalIds, ...productoData } = datos;
+
+    // Si viene la lista de adicionales, reemplazamos las asociaciones del producto
+    if (Array.isArray(adicionalIds)) {
+      await this.prisma.productoAdicional.deleteMany({
+        where: { productoId: id },
+      });
+      if (adicionalIds.length > 0) {
+        await this.prisma.productoAdicional.createMany({
+          data: adicionalIds.map((adicionalId: number) => ({
+            productoId: id,
+            adicionalId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
 
     // Si vienen ingredientes, reemplazamos toda la receta del producto
     if (ingredientes) {
@@ -84,7 +119,9 @@ export class ProductosService {
       });
 
       // Crear los ingredientes nuevos (sin ingredienteId) que el admin haya escrito a mano
-      const nuevos = ingredientes.filter((ing: any) => !ing.ingredienteId && ing.nombre);
+      const nuevos = ingredientes.filter(
+        (ing: any) => !ing.ingredienteId && ing.nombre,
+      );
       for (const ing of nuevos) {
         const ingredienteCreado = await this.prisma.ingrediente.create({
           data: {
@@ -110,6 +147,9 @@ export class ProductosService {
       include: {
         categoria: true,
         ingredientes: { include: { ingrediente: true } },
+        adicionales: {
+          include: { adicional: { include: { ingrediente: true } } },
+        },
       },
     });
   }

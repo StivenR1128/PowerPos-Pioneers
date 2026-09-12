@@ -6,6 +6,7 @@ interface ItemPantalla {
   nombre: string;
   cantidad: number;
   precio: number;
+  adicionales?: { nombre: string; cantidad: number }[];
 }
 
 interface EstadoPantalla {
@@ -55,11 +56,20 @@ export default function PantallaClientePage() {
           ) : (
             <div className="space-y-4">
               {estado.items.map((item, index) => (
-                <div key={`${item.nombre}-${index}`} className="flex items-center gap-5 border-b border-slate-800 pb-4">
-                  <span className="w-12 h-12 rounded-xl bg-orange-500 text-white flex items-center justify-center text-xl font-black">
+                <div key={`${item.nombre}-${index}`} className="flex items-start gap-5 border-b border-slate-800 pb-4">
+                  <span className="w-12 h-12 rounded-xl bg-orange-500 text-white flex items-center justify-center text-xl font-black shrink-0">
                     {item.cantidad}
                   </span>
-                  <span className="flex-1 text-2xl font-semibold">{item.nombre}</span>
+                  <div className="flex-1">
+                    <span className="text-2xl font-semibold">{item.nombre}</span>
+                    {item.adicionales && item.adicionales.length > 0 && (
+                      <div className="mt-1 text-base text-emerald-400">
+                        {item.adicionales.map((a, i) => (
+                          <span key={i} className="mr-3">+ {a.nombre}{a.cantidad > 1 ? ` x${a.cantidad}` : ''}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <span className="text-xl text-slate-300">${(item.precio * item.cantidad).toLocaleString('es-CO')}</span>
                 </div>
               ))}

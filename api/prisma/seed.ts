@@ -8,8 +8,11 @@ async function main() {
   console.log('🌱 Iniciando seed...');
 
   // Limpiar tablas en orden correcto
+  await prisma.detallePedidoAdicional.deleteMany();
   await prisma.detallePedido.deleteMany();
   await prisma.pedido.deleteMany();
+  await prisma.productoAdicional.deleteMany();
+  await prisma.adicional.deleteMany();
   await prisma.productoIngrediente.deleteMany();
   await prisma.ingrediente.deleteMany();
   await prisma.producto.deleteMany();
@@ -103,6 +106,33 @@ async function main() {
   }
   console.log('✅ Hamburguesa Clásica creada');
 
+  // Adicionales (extras con costo)
+  const quesoExtra = await prisma.ingrediente.create({
+    data: { nombre: 'Queso extra', unidad: 'lonchas', stock: 400, stockMinimo: 60, costoUnitario: 350 },
+  });
+  const tocinetaExtra = await prisma.ingrediente.create({
+    data: { nombre: 'Tocineta', unidad: 'gramos', stock: 2000, stockMinimo: 300, costoUnitario: 25 },
+  });
+
+  const adExtraQueso = await prisma.adicional.create({
+    data: { empresaId: empresa.id, nombre: 'Extra queso', precio: 2000, ingredienteId: quesoExtra.id, cantidad: 1 },
+  });
+  const adTocineta = await prisma.adicional.create({
+    data: { empresaId: empresa.id, nombre: 'Tocineta', precio: 3000, ingredienteId: tocinetaExtra.id, cantidad: 30 },
+  });
+  const adDobleCarne = await prisma.adicional.create({
+    data: { empresaId: empresa.id, nombre: 'Doble carne', precio: 5000 },
+  });
+
+  await prisma.productoAdicional.createMany({
+    data: [
+      { productoId: hamburguesa.id, adicionalId: adExtraQueso.id },
+      { productoId: hamburguesa.id, adicionalId: adTocineta.id },
+      { productoId: hamburguesa.id, adicionalId: adDobleCarne.id },
+    ],
+  });
+  console.log('✅ Adicionales creados y asociados a la Hamburguesa');
+
   // Perro Caliente
   const perro = await prisma.producto.create({
     data: { nombre: 'Perro Caliente Especial', descripcion: 'Perro caliente con salchicha y papas', precio: 8000, categoriaId: catPerros.id, empresaId: empresa.id },
@@ -126,12 +156,12 @@ async function main() {
   }
   console.log('✅ Perro Caliente creado');
 
-  // Bebidas
+  // Bebidas — no aceptan adicionales
   await prisma.producto.create({
-    data: { nombre: 'Gaseosa', descripcion: 'Gaseosa fría 350ml', precio: 3000, categoriaId: catBebidas.id, empresaId: empresa.id },
+    data: { nombre: 'Gaseosa', descripcion: 'Gaseosa fría 350ml', precio: 3000, categoriaId: catBebidas.id, empresaId: empresa.id, aceptaAdicionales: false },
   });
   await prisma.producto.create({
-    data: { nombre: 'Agua', descripcion: 'Agua fría 500ml', precio: 2000, categoriaId: catBebidas.id, empresaId: empresa.id },
+    data: { nombre: 'Agua', descripcion: 'Agua fría 500ml', precio: 2000, categoriaId: catBebidas.id, empresaId: empresa.id, aceptaAdicionales: false },
   });
   console.log('✅ Bebidas creadas');
 

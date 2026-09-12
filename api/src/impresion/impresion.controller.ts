@@ -12,6 +12,11 @@ export class ImpresionController {
     return this.impresionService.imprimirComanda(pedido, req.user.empresaId);
   }
 
+  @Post('ticket')
+  imprimirTicket(@Body() pedido: any, @Request() req: any) {
+    return this.impresionService.imprimirRecibo(pedido, req.user.empresaId);
+  }
+
   @Post('abrir-cajon')
   abrirCajon() {
     return this.impresionService.abrirCajon();
