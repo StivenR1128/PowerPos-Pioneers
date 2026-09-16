@@ -3,9 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
-import { ShoppingCart, Plus, Minus, Trash2, User, X, Search } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Trash2, User, X, Search, Keyboard, LayoutGrid, ChevronDown } from 'lucide-react';
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
+import TouchKeyboard from '@/components/TouchKeyboard';
 
 interface AdicionalProducto {
   id: number;
@@ -13,12 +14,21 @@ interface AdicionalProducto {
   precio: string;
 }
 
+interface Categoria {
+  id: number;
+  nombre: string;
+  color: string;
+  icono: string;
+  parentId?: number | null;
+  subcategorias?: Categoria[];
+}
+
 interface Producto {
   id: number;
   nombre: string;
   precio: string;
   descripcion: string;
-  categoria: { nombre: string; color: string; icono: string };
+  categoria: { id: number; nombre: string; color: string; icono: string; parentId?: number | null };
   ingredientes: { ingrediente: { nombre: string } }[];
   adicionales?: { adicional: AdicionalProducto }[];
   aceptaAdicionales?: boolean;
@@ -42,7 +52,7 @@ interface ItemCarrito {
 export default function POSPage() {
   const { usuario } = useAuthStore();
   const [productos, setProductos] = useState<Producto[]>([]);
-  const [categorias, setCategorias] = useState<any[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [categoriaActiva, setCategoriaActiva] = useState<number | null>(null);
   const [carrito, setCarrito] = useState<ItemCarrito[]>([]);
   const [adicionalesCatalogo, setAdicionalesCatalogo] = useState<AdicionalProducto[]>([]);
@@ -50,20 +60,26 @@ export default function POSPage() {
   const [exclusionesTemp, setExclusionesTemp] = useState<string[]>([]);
   const [adicionalesTemp, setAdicionalesTemp] = useState<AdicionalSeleccionado[]>([]);
   const [observacionTemp, setObservacionTemp] = useState('');
+  const [cantidadTemp, setCantidadTemp] = useState(1);
   const [metodoPago, setMetodoPago] = useState('EFECTIVO');
   const [loading, setLoading] = useState(false);
   const [pedidoExitoso, setPedidoExitoso] = useState<string | null>(null);
+  const [alertDialog, setAlertDialog] = useState<{ open: boolean; title: string; message: string }>({ open: false, title: '', message: '' });
   const [logoEmpresa, setLogoEmpresa] = useState<string | null>(null);
   const [nombreEmpresa, setNombreEmpresa] = useState<string>('');
   const [mounted, setMounted] = useState(false);
   const [logoBase64, setLogoBase64] = useState<string>('');
+  const [cajaAbierta, setCajaAbierta] = useState<any>(null);
   const [modoPreparacion, setModoPreparacion] = useState<'KDS' | 'COMANDAS'>(usuario?.modoPreparacion || 'KDS');
+  const [imprimirComanda, setImprimirComanda] = useState(true);
   const [ultimoPedido, setUltimoPedido] = useState<string | null>(null);
   const canalPantalla = useRef<BroadcastChannel | null>(null);
 
   // Cliente asociado al pedido
   const [clienteSeleccionado, setClienteSeleccionado] = useState<any>(null);
   const [busquedaCliente, setBusquedaCliente] = useState('');
+  const [tecladoClienteVisible, setTecladoClienteVisible] = useState(false);
+  const [tecladoObservacionVisible, setTecladoObservacionVisible] = useState(false);
   const [resultadosCliente, setResultadosCliente] = useState<any[]>([]);
   const [mostrarDropdownCliente, setMostrarDropdownCliente] = useState(false);
 
@@ -93,17 +109,32 @@ export default function POSPage() {
   useEffect(() => {
     if (!mounted) return;
     cargarDatos();
+    const cargarCaja = async () => {
+      try {
+        const { data } = await api.get('/caja/abierta');
+        setCajaAbierta(data);
+      } catch {
+        setCajaAbierta(null);
+      }
+    };
+    void cargarCaja();
   }, [mounted]);
+
+  const esSupervisor = usuario?.rol === 'ADMIN_EMPRESA' || usuario?.rol === 'GERENTE';
+  const cajaBloqueadaPorUsuario = !!cajaAbierta && !!usuario && Number(cajaAbierta.usuarioId) !== Number(usuario.id) && !esSupervisor;
 
   useEffect(() => {
     if (!mounted) return;
     canalPantalla.current = new BroadcastChannel('powerpos-pantalla-cliente');
-    return () => canalPantalla.current?.close();
+    return () => {
+      canalPantalla.current?.close();
+    };
   }, [mounted]);
 
   useEffect(() => {
     canalPantalla.current?.postMessage({
       empresa: nombreEmpresa || 'PowerPOS',
+      logoUrl: logoEmpresa,
       items: carrito.map((item) => ({
         nombre: item.producto.nombre,
         cantidad: item.cantidad,
@@ -112,8 +143,10 @@ export default function POSPage() {
       })),
       total,
       pedido: ultimoPedido,
+      clienteNombre: clienteSeleccionado?.nombre || null,
+      mensajeLlamado: clienteSeleccionado?.nombre ? `Pedido listo para ${clienteSeleccionado.nombre}` : null,
     });
-  }, [carrito, nombreEmpresa, total, ultimoPedido]);
+  }, [carrito, nombreEmpresa, logoEmpresa, total, ultimoPedido, clienteSeleccionado]);
 
   useEffect(() => {
     if (!busquedaCliente) {
@@ -131,34 +164,48 @@ export default function POSPage() {
     return () => clearTimeout(timeout);
   }, [busquedaCliente]);
 
+  const cargarLogoBase64DesdeUrl = async (logoUrl: string): Promise<string> => {
+    if (!logoUrl) return '';
+    if (logoBase64) return logoBase64;
+
+    try {
+      const respuesta = await fetch(logoUrl);
+      const blob = await respuesta.blob();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = () => reject(new Error('No se pudo leer el logo'));
+        reader.readAsDataURL(blob);
+      });
+      setLogoBase64(base64);
+      return base64;
+    } catch (e) {
+      console.error('Error logo:', e);
+      return '';
+    }
+  };
+
   const cargarDatos = async () => {
-    const [cats, prods, empresa, adicionales] = await Promise.all([
+    const [catsResult, prodsResult, empresaResult, adicionalesResult] = await Promise.allSettled([
       api.get('/categorias'),
       api.get('/productos'),
       api.get('/empresa'),
       api.get('/adicionales'),
     ]);
-    setCategorias(cats.data);
-    setProductos(prods.data);
-    setAdicionalesCatalogo(adicionales.data);
-    setNombreEmpresa(empresa.data.nombre);
-    if (empresa.data.modoPreparacion) setModoPreparacion(empresa.data.modoPreparacion);
 
-    if (empresa.data.logo) {
-      setLogoEmpresa(empresa.data.logo);
-      // Cargar logo en background sin bloquear
-      fetch(empresa.data.logo)
-        .then(r => r.blob())
-        .then(blob => new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        }))
-        .then(base64 => {
-          console.log('Logo listo, longitud:', base64.length);
-          setLogoBase64(base64);
-        })
-        .catch(e => console.error('Error logo:', e));
+    if (catsResult.status === 'fulfilled') setCategorias(catsResult.value.data);
+    if (prodsResult.status === 'fulfilled') setProductos(prodsResult.value.data);
+    if (adicionalesResult.status === 'fulfilled') setAdicionalesCatalogo(adicionalesResult.value.data);
+
+    if (empresaResult.status === 'fulfilled') {
+      const empresa = empresaResult.value.data;
+      setNombreEmpresa(empresa.nombre || 'PowerPOS');
+      if (empresa.modoPreparacion) setModoPreparacion(empresa.modoPreparacion);
+
+      if (empresa.logo) {
+        setLogoEmpresa(empresa.logo);
+        void cargarLogoBase64DesdeUrl(empresa.logo);
+      }
     }
   };
 
@@ -167,18 +214,20 @@ export default function POSPage() {
     setBusquedaCliente('');
     setResultadosCliente([]);
     setMostrarDropdownCliente(false);
+    setTecladoClienteVisible(false);
   };
 
   const quitarCliente = () => {
     setClienteSeleccionado(null);
   };
 
-  const imprimirTicket = (pedido: any) => {
+  const imprimirTicket = async (pedido: any) => {
+    const logoFinal = logoBase64 || (logoEmpresa ? await cargarLogoBase64DesdeUrl(logoEmpresa) : '');
     const ventana = window.open('', '_blank', 'width=320,height=700');
     if (!ventana) return;
 
-    const logoHtml = logoBase64
-      ? `<img src="${logoBase64}" style="width:70px;height:70px;border-radius:16px;object-fit:cover;margin:0 auto 8px;display:block;" />`
+    const logoHtml = logoFinal
+      ? `<img src="${logoFinal}" style="width:70px;height:70px;border-radius:16px;object-fit:cover;margin:0 auto 8px;display:block;" />`
       : `<div class="logo-placeholder">🍔</div>`;
 
     const contenido = `
@@ -472,7 +521,7 @@ export default function POSPage() {
 
         ${pedido.cliente ? `
           <div class="observacion-pedido">
-            👤 <strong>Cliente:</strong> ${pedido.cliente.nombre}
+            👤 <strong>Cliente:</strong> ${pedido.cliente.nombre}${pedido.cliente.telefono ? ` · ${pedido.cliente.telefono}` : ''}
           </div>
         ` : ''}
 
@@ -500,20 +549,21 @@ export default function POSPage() {
     }, 800);
   };
 
-  const imprimirComanda = (pedido: any) => {
+  const imprimirComandaFallback = (pedido: any) => {
     const ventana = window.open('', '_blank', 'width=320,height=700');
     if (!ventana) return;
 
     const logoComanda = logoBase64
       ? `<img src="${logoBase64}" class="logo" />`
       : `<div class="logo-placeholder">🍔</div>`;
+    const etiquetaLado = pedido?.ladoNombre ? ` · ${pedido.ladoNombre}` : '';
 
     const contenido = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>Comanda ${pedido.numero}</title>
+        <title>Comanda ${pedido.numero}${etiquetaLado}</title>
         <style>
           * { box-sizing: border-box; }
           body { width: 300px; margin: 0 auto; padding: 14px 12px; font-family: 'Inter', 'Courier New', monospace; color: #111; background: #fff; font-size: 13px; }
@@ -545,11 +595,11 @@ export default function POSPage() {
         <div class="encabezado">
           ${logoComanda}
           <div class="empresa">${nombreEmpresa.toUpperCase()}</div>
-          <div class="subtitulo">Comanda de preparación</div>
+          <div class="subtitulo">Comanda de preparación${etiquetaLado}</div>
         </div>
         <div class="barra-pedido">
           <div><div class="etiqueta">Pedido</div><div class="numero">${pedido.numero}</div></div>
-          <div class="estado">Pendiente</div>
+          <div class="estado">${pedido?.ladoNombre || 'Pendiente'}</div>
         </div>
         <div class="fecha">
           ${new Date().toLocaleString('es-CO', {
@@ -569,6 +619,7 @@ export default function POSPage() {
             ${detalle.observacion ? `<div class="detalle nota">NOTA: ${detalle.observacion}</div>` : ''}
           </div>
         `).join('')}
+        ${pedido.cliente ? `<div class="general">CLIENTE: ${pedido.cliente.nombre.toUpperCase()}${pedido.cliente.telefono ? ` · ${pedido.cliente.telefono}` : ''}</div>` : ''}
         ${pedido.observacion ? `<div class="general">NOTA GENERAL: ${pedido.observacion}</div>` : ''}
         <div class="pie">Preparar y entregar en mostrador</div>
       </body>
@@ -584,15 +635,32 @@ export default function POSPage() {
     }, 500);
   };
 
-  const productosFiltrados = categoriaActiva
-    ? productos.filter((p) => p.categoria?.nombre === categorias.find(c => c.id === categoriaActiva)?.nombre)
-    : productos;
+  const categoriasPrincipales = categorias.filter((cat) => !cat.parentId);
+  const categoriaSeleccionada = categorias.find((cat) => cat.id === categoriaActiva) || null;
+  const categoriaTopActiva = categoriaSeleccionada
+    ? categoriaSeleccionada.parentId
+      ? categoriasPrincipales.find((cat) => cat.id === categoriaSeleccionada.parentId) || null
+      : categoriaSeleccionada
+    : null;
+  const subcategoriasActivas = categoriaTopActiva?.subcategorias || [];
+
+  const productosFiltrados = (() => {
+    if (!categoriaActiva || !categoriaSeleccionada) return productos;
+    if (categoriaSeleccionada.parentId) {
+      return productos.filter((p) => p.categoria?.id === categoriaActiva);
+    }
+    return productos.filter(
+      (p) => p.categoria?.id === categoriaActiva || p.categoria?.parentId === categoriaActiva,
+    );
+  })();
 
   const abrirModal = (producto: Producto) => {
     setModalProducto(producto);
     setExclusionesTemp([]);
     setAdicionalesTemp([]);
     setObservacionTemp('');
+    setCantidadTemp(1);
+    setTecladoObservacionVisible(false);
   };
 
   const toggleExclusion = (nombre: string) => {
@@ -619,6 +687,7 @@ export default function POSPage() {
 
   const agregarAlCarrito = () => {
     if (!modalProducto) return;
+    const cantidad = Math.max(1, Number(cantidadTemp) || 1);
     const claveAdicionales = JSON.stringify(
       [...adicionalesTemp].sort((a, b) => a.adicionalId - b.adicionalId)
     );
@@ -627,16 +696,19 @@ export default function POSPage() {
         (i) =>
           i.producto.id === modalProducto.id &&
           JSON.stringify(i.exclusiones) === JSON.stringify(exclusionesTemp) &&
-          JSON.stringify([...i.adicionales].sort((a, b) => a.adicionalId - b.adicionalId)) === claveAdicionales
+          JSON.stringify([...i.adicionales].sort((a, b) => a.adicionalId - b.adicionalId)) === claveAdicionales &&
+          i.observacion === observacionTemp
       );
       if (existe >= 0) {
         const nuevo = [...prev];
-        nuevo[existe].cantidad += 1;
+        nuevo[existe].cantidad += cantidad;
         return nuevo;
       }
-      return [...prev, { producto: modalProducto, cantidad: 1, exclusiones: exclusionesTemp, adicionales: adicionalesTemp, observacion: observacionTemp }];
+      return [...prev, { producto: modalProducto, cantidad, exclusiones: exclusionesTemp, adicionales: adicionalesTemp, observacion: observacionTemp }];
     });
     setModalProducto(null);
+    setTecladoObservacionVisible(false);
+    setCantidadTemp(1);
   };
 
   const cambiarCantidad = (index: number, delta: number) => {
@@ -648,7 +720,61 @@ export default function POSPage() {
     });
   };
 
+  const requierePreparacion = (producto: Producto) => {
+    const categoria = String(producto?.categoria?.nombre || '').toLowerCase();
+    if (categoria.includes('bebida')) return true;
+    return producto?.aceptaAdicionales !== false;
+  };
+
+  const obtenerLadoComanda = (detalle: any) => {
+    const nombreCategoria = String(detalle?.producto?.categoria?.nombre || '').toLowerCase();
+    if (nombreCategoria.includes('lado 1') || nombreCategoria.includes('lado1')) return 'LADO 1';
+    if (nombreCategoria.includes('lado 2') || nombreCategoria.includes('lado2')) return 'LADO 2';
+    return 'LADO 1';
+  };
+
+  const prepararPedidoComanda = (pedido: any) => {
+    const grupos = new Map<string, any[]>();
+
+    for (const detalle of pedido?.detalles || []) {
+      const nombreCategoria = String(detalle?.producto?.categoria?.nombre || '').toLowerCase();
+      const esBebida = nombreCategoria.includes('bebida');
+      const sinPreparacion = detalle?.producto?.aceptaAdicionales === false;
+
+      if (!esBebida && sinPreparacion) continue;
+
+      const lado = obtenerLadoComanda(detalle);
+      const grupoActual = grupos.get(lado) || [];
+      grupoActual.push(detalle);
+      grupos.set(lado, grupoActual);
+    }
+
+    if (grupos.size === 0) return [];
+
+    return Array.from(grupos.entries()).map(([lado, detalles]) => ({
+      ...pedido,
+      ladoNombre: lado,
+      detalles,
+    }));
+  };
+
   const confirmarPedido = async () => {
+    if (!cajaAbierta) {
+      setAlertDialog({
+        open: true,
+        title: 'Caja cerrada',
+        message: 'No se puede vender hasta que el administrador abra la caja del día. Solicita la apertura antes de registrar pedidos.',
+      });
+      return;
+    }
+    if (cajaBloqueadaPorUsuario) {
+      setAlertDialog({
+        open: true,
+        title: 'Caja asignada a otro cajero',
+        message: `La caja abierta pertenece a ${cajaAbierta?.usuario?.nombre || 'otro cajero'}. Solo ese usuario o un administrador puede registrar ventas en esta caja.`,
+      });
+      return;
+    }
     if (carrito.length === 0) return;
     setLoading(true);
     try {
@@ -667,15 +793,31 @@ export default function POSPage() {
       setPedidoExitoso(data.numero);
       setUltimoPedido(data.numero);
       setCarrito([]);
+
+      const nombreCliente = data?.cliente?.nombre || clienteSeleccionado?.nombre || null;
+      canalPantalla.current?.postMessage({
+        empresa: nombreEmpresa || 'PowerPOS',
+        logoUrl: logoEmpresa,
+        items: [],
+        total: 0,
+        pedido: data.numero,
+        clienteNombre: nombreCliente,
+        mensajeLlamado: null,
+      });
+
       setClienteSeleccionado(null);
-      if (modoPreparacion === 'COMANDAS') {
-        try {
-          const impresion = await api.post('/impresion/comanda', data);
-          // Si la impresora física no imprimió (ESC/POS desactivado o sin configurar),
-          // se abre la comanda en el navegador para pasarla a cocina.
-          if (!impresion.data.impreso) imprimirComanda(data);
-        } catch {
-          imprimirComanda(data);
+
+      const comandasPedido = prepararPedidoComanda(data);
+      const hayComanda = comandasPedido.length > 0;
+
+      if (modoPreparacion === 'COMANDAS' && hayComanda && imprimirComanda) {
+        for (const comandaPedido of comandasPedido) {
+          try {
+            const impresion = await api.post('/impresion/comanda', comandaPedido);
+            if (!impresion.data.impreso) imprimirComandaFallback(comandaPedido);
+          } catch {
+            imprimirComandaFallback(comandaPedido);
+          }
         }
       }
       if (metodoPago === 'EFECTIVO') {
@@ -685,15 +827,19 @@ export default function POSPage() {
       try {
         const respuestaTicket = await api.post('/impresion/ticket', data);
         if (!respuestaTicket.data.impreso && respuestaTicket.data.fallbackBrowser) {
-          imprimirTicket(data);
+          await imprimirTicket(data);
         }
       } catch {
-        imprimirTicket(data);
+        await imprimirTicket(data);
       }
 
       setTimeout(() => setPedidoExitoso(null), 4000);
     } catch (e) {
-      alert('Error al registrar el pedido');
+      setAlertDialog({
+        open: true,
+        title: 'No se pudo registrar el pedido',
+        message: 'Hubo un problema al guardar la venta. Revisa la información e intenta nuevamente.',
+      });
     } finally {
       setLoading(false);
     }
@@ -716,27 +862,116 @@ export default function POSPage() {
           </div>
         )}
 
-        <div className="flex flex-1 overflow-hidden">
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex gap-2 p-4 overflow-x-auto border-b border-gray-800">
-              <button
-                onClick={() => setCategoriaActiva(null)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${!categoriaActiva ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
-              >
-                Todos
-              </button>
-              {categorias.map((cat) => (
+        {alertDialog.open && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[60]">
+            <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-gray-900 p-5 shadow-2xl">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-red-500/10 text-red-400">
+                  <X size={20} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-white">{alertDialog.title}</h3>
+                  <p className="mt-2 text-sm text-gray-300 leading-relaxed">{alertDialog.message}</p>
+                </div>
+              </div>
+
+              <div className="mt-5 flex justify-end">
                 <button
-                  key={cat.id}
-                  onClick={() => setCategoriaActiva(cat.id)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${categoriaActiva === cat.id ? 'bg-orange-500 text-white' : 'bg-gray-800 text-gray-400 hover:bg-gray-700'}`}
+                  type="button"
+                  onClick={() => setAlertDialog({ open: false, title: '', message: '' })}
+                  className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600"
                 >
-                  {cat.icono} {cat.nombre}
+                  Entendido
                 </button>
-              ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!cajaAbierta && (
+          <div className="border-b border-red-500/30 bg-red-500/10 text-red-200 px-4 py-3 text-center text-sm font-medium">
+            La caja de la sucursal está cerrada. Solo el administrador puede abrirla para poder vender.
+          </div>
+        )}
+
+        {cajaBloqueadaPorUsuario && (
+          <div className="border-b border-red-500/30 bg-red-500/10 text-red-200 px-4 py-3 text-center text-sm font-medium">
+            La caja abierta está asignada al cajero {cajaAbierta?.usuario?.nombre || 'seleccionado'}. Este usuario no puede registrar ventas.
+          </div>
+        )}
+
+        <div className="flex flex-1 overflow-hidden">
+          <div className={`flex-1 flex flex-col overflow-hidden ${(!cajaAbierta || cajaBloqueadaPorUsuario) ? 'pointer-events-none opacity-50' : ''}`}>
+            <div className="border-b border-gray-800 bg-gray-950">
+              <div className="flex flex-wrap gap-2 p-3">
+                <button
+                  onClick={() => setCategoriaActiva(null)}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
+                    !categoriaActiva
+                      ? 'bg-gradient-to-b from-orange-400 to-orange-600 text-white shadow-lg shadow-orange-500/25'
+                      : 'bg-gray-900 border border-gray-800 text-gray-400 hover:border-gray-700 hover:text-white'
+                  }`}
+                >
+                  <LayoutGrid size={14} />
+                  Todos
+                </button>
+                {categoriasPrincipales.map((cat) => {
+                  const activa = categoriaTopActiva?.id === cat.id;
+                  return (
+                    <button
+                      key={cat.id}
+                      onClick={() => setCategoriaActiva(cat.id)}
+                      className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all ${
+                        activa
+                          ? 'bg-gradient-to-b from-orange-400 to-orange-600 text-white shadow-lg shadow-orange-500/25'
+                          : 'bg-gray-900 border border-gray-800 text-gray-400 hover:border-gray-700 hover:text-white'
+                      }`}
+                    >
+                      <span>{cat.icono}</span>
+                      {cat.nombre}
+                      {(cat.subcategorias?.length ?? 0) > 0 && (
+                        <ChevronDown size={13} className={`transition-transform ${activa ? 'rotate-180' : ''}`} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {subcategoriasActivas.length > 0 && (
+                <div className="flex flex-wrap gap-2 px-3 pb-3 -mt-1">
+                  <button
+                    onClick={() => categoriaTopActiva && setCategoriaActiva(categoriaTopActiva.id)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                      categoriaActiva === categoriaTopActiva?.id
+                        ? 'bg-cyan-500 text-gray-950'
+                        : 'bg-gray-900 border border-cyan-500/30 text-cyan-300 hover:border-cyan-500/60'
+                    }`}
+                  >
+                    Todas
+                  </button>
+                  {subcategoriasActivas.map((sub) => (
+                    <button
+                      key={sub.id}
+                      onClick={() => setCategoriaActiva(sub.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${
+                        categoriaActiva === sub.id
+                          ? 'bg-cyan-500 text-gray-950'
+                          : 'bg-gray-900 border border-cyan-500/30 text-cyan-300 hover:border-cyan-500/60'
+                      }`}
+                    >
+                      ↳ {sub.nombre}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 content-start">
+              {productosFiltrados.length === 0 && (
+                <div className="col-span-full text-center text-gray-600 text-sm py-16">
+                  {productos.length === 0 ? 'Aún no hay productos registrados.' : 'No hay productos en esta categoría.'}
+                </div>
+              )}
               {productosFiltrados.map((producto) => (
                 <button
                   key={producto.id}
@@ -782,8 +1017,16 @@ export default function POSPage() {
                     onChange={(e) => { setBusquedaCliente(e.target.value); setMostrarDropdownCliente(true); }}
                     onFocus={() => setMostrarDropdownCliente(true)}
                     placeholder="Buscar cliente (opcional)..."
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-8 pr-9 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
                   />
+                  <button
+                    type="button"
+                    onClick={() => { setMostrarDropdownCliente(true); setTecladoClienteVisible((prev) => !prev); }}
+                    title="Teclado en pantalla"
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded ${tecladoClienteVisible ? 'text-orange-500' : 'text-gray-500 hover:text-white'}`}
+                  >
+                    <Keyboard size={15} />
+                  </button>
                   {mostrarDropdownCliente && resultadosCliente.length > 0 && (
                     <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg overflow-hidden z-10 max-h-48 overflow-y-auto">
                       {resultadosCliente.map((cliente) => (
@@ -867,7 +1110,7 @@ export default function POSPage() {
               </select>
               <button
                 onClick={confirmarPedido}
-                disabled={carrito.length === 0 || loading}
+                disabled={carrito.length === 0 || loading || !cajaAbierta || cajaBloqueadaPorUsuario}
                 className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/30 text-white font-bold rounded-lg py-3 transition-colors"
               >
                 {loading ? 'Procesando...' : 'Confirmar pedido'}
@@ -876,7 +1119,13 @@ export default function POSPage() {
                 onClick={() => window.open('/cliente', 'powerpos-pantalla-cliente', 'width=1280,height=800')}
                 className="w-full border border-gray-700 hover:border-orange-500 text-gray-300 hover:text-white rounded-lg py-2 text-sm transition-colors"
               >
-                Abrir pantalla del cliente
+                Pantalla del cliente
+              </button>
+              <button
+                onClick={() => window.open('/llamado', 'powerpos-pantalla-llamado', 'width=1600,height=900')}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg py-2 text-sm transition-colors"
+              >
+                Pantalla de llamado
               </button>
             </div>
           </div>
@@ -955,19 +1204,50 @@ export default function POSPage() {
               )}
 
               <div className="mb-4">
+                <p className="text-gray-400 text-sm mb-2">Cantidad</p>
+                <div className="flex items-center justify-between bg-gray-800 border border-gray-700 rounded-lg px-3 py-2">
+                  <button
+                    type="button"
+                    onClick={() => setCantidadTemp((prev) => Math.max(1, prev - 1))}
+                    className="bg-gray-700 hover:bg-gray-600 text-white rounded w-8 h-8 flex items-center justify-center"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span className="text-white font-bold text-lg min-w-10 text-center">{cantidadTemp}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCantidadTemp((prev) => prev + 1)}
+                    className="bg-gray-700 hover:bg-gray-600 text-white rounded w-8 h-8 flex items-center justify-center"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="mb-4">
                 <p className="text-gray-400 text-sm mb-2">Observación</p>
-                <input
-                  type="text"
-                  value={observacionTemp}
-                  onChange={(e) => setObservacionTemp(e.target.value)}
-                  placeholder="Ej: término del punto, extra salsa..."
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={observacionTemp}
+                    onChange={(e) => setObservacionTemp(e.target.value)}
+                    placeholder="Ej: término del punto, extra salsa..."
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 pr-9 text-white text-sm focus:outline-none focus:border-orange-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setTecladoObservacionVisible((prev) => !prev)}
+                    title="Teclado en pantalla"
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded ${tecladoObservacionVisible ? 'text-orange-500' : 'text-gray-500 hover:text-white'}`}
+                  >
+                    <Keyboard size={15} />
+                  </button>
+                </div>
               </div>
 
               <div className="flex gap-3">
                 <button
-                  onClick={() => setModalProducto(null)}
+                  onClick={() => { setModalProducto(null); setTecladoObservacionVisible(false); }}
                   className="flex-1 bg-gray-800 hover:bg-gray-700 text-white rounded-lg py-3 transition-colors"
                 >
                   Cancelar
@@ -976,14 +1256,32 @@ export default function POSPage() {
                   onClick={agregarAlCarrito}
                   className="flex-1 bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-lg py-3 transition-colors"
                 >
-                  Agregar · ${(
+                  Agregar {cantidadTemp} · ${((
                     Number(modalProducto.precio) +
                     adicionalesTemp.reduce((acc, a) => acc + a.precio * a.cantidad, 0)
-                  ).toLocaleString()}
+                  ) * cantidadTemp).toLocaleString()}
                 </button>
               </div>
             </div>
           </div>
+        )}
+
+        {tecladoClienteVisible && (
+          <TouchKeyboard
+            titulo="Buscar cliente"
+            value={busquedaCliente}
+            onChange={(v) => { setBusquedaCliente(v); setMostrarDropdownCliente(true); }}
+            onClose={() => setTecladoClienteVisible(false)}
+          />
+        )}
+
+        {tecladoObservacionVisible && (
+          <TouchKeyboard
+            titulo="Observación del producto"
+            value={observacionTemp}
+            onChange={setObservacionTemp}
+            onClose={() => setTecladoObservacionVisible(false)}
+          />
         )}
       </div>
     </AuthGuard>

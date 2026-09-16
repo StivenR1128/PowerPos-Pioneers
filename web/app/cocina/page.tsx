@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import api from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
@@ -25,6 +25,40 @@ export default function CocinaPage() {
   const { usuario, token } = useAuthStore();
   const router = useRouter();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const canalLlamado = useRef<BroadcastChannel | null>(null);
+
+  useEffect(() => {
+    canalLlamado.current = new BroadcastChannel('powerpos-llamado-cliente');
+    return () => canalLlamado.current?.close();
+  }, []);
+
+  const emitirLlamadoCliente = async (pedido: Pedido | undefined, estado: string) => {
+    if (!pedido || !['LISTO', 'ENTREGADO'].includes(estado)) return;
+
+    const nombreCliente = pedido.cliente?.nombre || null;
+    const payload = {
+      empresa: usuario?.empresa || 'PowerPOS',
+      pedido: estado === 'LISTO' ? pedido.numero : null,
+      clienteNombre: estado === 'LISTO' ? nombreCliente : null,
+      mensaje: estado === 'LISTO' && nombreCliente ? `Pedido listo para ${nombreCliente}` : null,
+      logoUrl: null,
+      estado,
+    };
+
+    try {
+      const { data: empresa } = await api.get('/empresa');
+      payload.empresa = empresa?.nombre || payload.empresa;
+      payload.logoUrl = empresa?.logo || null;
+    } catch {
+      // mantiene los valores por defecto
+    }
+
+    canalLlamado.current?.postMessage(payload);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('powerpos-llamado-cliente-event', JSON.stringify(payload));
+      window.dispatchEvent(new CustomEvent('powerpos-llamado-cliente-event', { detail: payload }));
+    }
+  };
 
   useEffect(() => {
     if (!usuario) { router.push('/login'); return; }
@@ -49,7 +83,9 @@ export default function CocinaPage() {
   };
 
   const actualizarEstado = async (id: number, estado: string) => {
+    const pedidoSeleccionado = pedidos.find((pedido) => pedido.id === id);
     await api.patch(`/pedidos/${id}/estado`, { estado });
+    emitirLlamadoCliente(pedidoSeleccionado, estado);
     cargarPedidos();
   };
 

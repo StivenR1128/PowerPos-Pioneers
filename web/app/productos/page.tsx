@@ -10,6 +10,8 @@ interface Categoria {
   nombre: string;
   icono: string;
   color?: string;
+  parentId?: number | null;
+  subcategorias?: Categoria[];
 }
 
 interface IngredienteReceta {
@@ -44,6 +46,15 @@ interface Producto {
   adicionales: { adicional: { id: number; nombre: string; precio: string } }[];
 }
 
+const ICONOS_CATEGORIA = [
+  '🥓', '🌭', '🍔', '🍟', '🍕', '🌮', '🥪', '🍗', '🍖', '🥖', '🥯',
+  '🍤', '🍣', '🍜', '🍝', '🍲', '🥗', '🥟', '🍛', '🍱', '🍙',
+  '🥤', '☕', '🧃', '🍹', '🍋', '🍉', '🍑', '🍓', '🍰', '🧁',
+  '🍦', '🍪', '🥨', '🥐', '🍞', '🍳', '🥚', '🍢', '🥡', '🍵',
+  '🍷', '🍺', '🥃', '🌯', '🥑', '🍴', '🥬', '🥒', '🌽', '🧂',
+  '🌶️', '🥙', '🥩', '🍽️', '🍟', '🍔', '☕', '🥤', '🌮', '🍖',
+].filter((icono, indice, arreglo) => arreglo.indexOf(icono) === indice);
+
 export default function ProductosPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -53,6 +64,8 @@ export default function ProductosPage() {
   const [modalCategoria, setModalCategoria] = useState(false);
   const [modalAdicionales, setModalAdicionales] = useState(false);
   const [editando, setEditando] = useState<Producto | null>(null);
+  const [editandoCategoria, setEditandoCategoria] = useState<Categoria | null>(null);
+  const [selectorIconoAbierto, setSelectorIconoAbierto] = useState(false);
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     nombre: '',
@@ -64,13 +77,19 @@ export default function ProductosPage() {
   });
   const [recetaTemp, setRecetaTemp] = useState<IngredienteReceta[]>([]);
   const [adicionalIdsTemp, setAdicionalIdsTemp] = useState<number[]>([]);
-  const [formCategoria, setFormCategoria] = useState({ nombre: '', icono: '🍽️', color: '#FF6B35' });
+  const [formCategoria, setFormCategoria] = useState({ nombre: '', icono: '🍽️', color: '#FF6B35', parentId: '' });
   const [formAdicional, setFormAdicional] = useState<{ id: number | null; nombre: string; precio: string; ingredienteId: string; cantidad: string }>({
     id: null,
     nombre: '',
     precio: '',
     ingredienteId: '',
     cantidad: '',
+  });
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; title: string; message: string; onConfirm?: () => void | Promise<void>; confirmText?: string }>({
+    open: false,
+    title: '',
+    message: '',
+    confirmText: 'Confirmar',
   });
 
   useEffect(() => {
@@ -157,11 +176,21 @@ export default function ProductosPage() {
     });
   };
 
+  const abrirConfirmacion = (title: string, message: string, onConfirm: () => void | Promise<void>, confirmText = 'Confirmar') => {
+    setConfirmDialog({ open: true, title, message, onConfirm, confirmText });
+  };
+
   const eliminarAdicional = async (id: number) => {
-    if (!confirm('¿Desactivar este adicional?')) return;
-    await api.delete(`/adicionales/${id}`);
-    setAdicionalIdsTemp((prev) => prev.filter((x) => x !== id));
-    cargarDatos();
+    abrirConfirmacion(
+      'Desactivar adicional',
+      '¿Deseas desactivar este adicional? Esta acción lo dejará no disponible para los clientes.',
+      async () => {
+        await api.delete(`/adicionales/${id}`);
+        setAdicionalIdsTemp((prev) => prev.filter((x) => x !== id));
+        cargarDatos();
+      },
+      'Desactivar'
+    );
   };
 
   const agregarIngredienteReceta = () => {
@@ -228,9 +257,15 @@ export default function ProductosPage() {
   };
 
   const eliminar = async (id: number) => {
-    if (!confirm('¿Deseas desactivar este producto?')) return;
-    await api.delete(`/productos/${id}`);
-    cargarDatos();
+    abrirConfirmacion(
+      'Eliminar producto',
+      '¿Deseas desactivar este producto? Ya no estará disponible para la venta.',
+      async () => {
+        await api.delete(`/productos/${id}`);
+        cargarDatos();
+      },
+      'Eliminar'
+    );
   };
 
   const toggleDisponible = async (producto: Producto) => {
@@ -238,19 +273,60 @@ export default function ProductosPage() {
     cargarDatos();
   };
 
-  const crearCategoria = async () => {
+  const abrirModalCategoria = (categoria?: Categoria) => {
+    if (categoria) {
+      setEditandoCategoria(categoria);
+      setFormCategoria({
+        nombre: categoria.nombre,
+        icono: categoria.icono || '🍽️',
+        color: categoria.color || '#FF6B35',
+        parentId: categoria.parentId ? String(categoria.parentId) : '',
+      });
+    } else {
+      setEditandoCategoria(null);
+      setFormCategoria({ nombre: '', icono: '🍽️', color: '#FF6B35', parentId: '' });
+    }
+    setSelectorIconoAbierto(false);
+    setModalCategoria(true);
+  };
+
+  const guardarCategoria = async () => {
     if (!formCategoria.nombre) return;
     setLoading(true);
     try {
-      await api.post('/categorias', formCategoria);
+      if (editandoCategoria) {
+        await api.patch(`/categorias/${editandoCategoria.id}`, formCategoria);
+      } else {
+        await api.post('/categorias', formCategoria);
+      }
       setModalCategoria(false);
-      setFormCategoria({ nombre: '', icono: '🍽️', color: '#FF6B35' });
+      setEditandoCategoria(null);
+      setFormCategoria({ nombre: '', icono: '🍽️', color: '#FF6B35', parentId: '' });
       cargarDatos();
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
+  };
+
+  const eliminarCategoria = async (categoria: Categoria) => {
+    abrirConfirmacion(
+      'Eliminar categoría',
+      `¿Deseas eliminar la categoría "${categoria.nombre}"? Esta acción puede afectar los productos asociados.`,
+      async () => {
+        setLoading(true);
+        try {
+          await api.delete(`/categorias/${categoria.id}`);
+          cargarDatos();
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setLoading(false);
+        }
+      },
+      'Eliminar'
+    );
   };
 
   return (
@@ -266,7 +342,7 @@ export default function ProductosPage() {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setModalCategoria(true)}
+              onClick={() => abrirModalCategoria()}
               className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg px-4 py-2 transition-colors"
             >
               <Tag size={16} />
@@ -292,19 +368,63 @@ export default function ProductosPage() {
         {/* Chips de categorías */}
         {categorias.length > 0 && (
           <div className="flex gap-2 mb-4 flex-wrap">
-            {categorias.map((cat) => (
-              <span
-                key={cat.id}
-                className="text-xs px-3 py-1.5 rounded-full border"
-                style={{
-                  backgroundColor: `${cat.color}1A`,
-                  borderColor: `${cat.color}40`,
-                  color: cat.color,
-                }}
-              >
-                {cat.icono} {cat.nombre}
-              </span>
-            ))}
+            {categorias
+              .filter((cat) => !cat.parentId)
+              .map((cat) => (
+                <div key={cat.id} className="flex flex-wrap items-center gap-2">
+                  <div
+                    className="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border"
+                    style={{
+                      backgroundColor: `${cat.color}1A`,
+                      borderColor: `${cat.color}40`,
+                      color: cat.color,
+                    }}
+                  >
+                    <span>{cat.icono} {cat.nombre}</span>
+                    <button
+                      type="button"
+                      onClick={() => abrirModalCategoria(cat)}
+                      className="hover:text-white transition-colors"
+                      aria-label={`Editar categoría ${cat.nombre}`}
+                    >
+                      <Edit size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => eliminarCategoria(cat)}
+                      className="hover:text-red-400 transition-colors"
+                      aria-label={`Eliminar categoría ${cat.nombre}`}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+
+                  {(cat.subcategorias || []).map((sub) => (
+                    <div
+                      key={sub.id}
+                      className="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-300"
+                    >
+                      <span>↳ {sub.nombre}</span>
+                      <button
+                        type="button"
+                        onClick={() => abrirModalCategoria(sub)}
+                        className="hover:text-white transition-colors"
+                        aria-label={`Editar subcategoría ${sub.nombre}`}
+                      >
+                        <Edit size={12} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => eliminarCategoria(sub)}
+                        className="hover:text-red-400 transition-colors"
+                        aria-label={`Eliminar subcategoría ${sub.nombre}`}
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ))}
           </div>
         )}
 
@@ -379,6 +499,44 @@ export default function ProductosPage() {
         </div>
       </div>
 
+      {confirmDialog.open && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-[60]">
+          <div className="w-full max-w-md rounded-2xl border border-red-500/30 bg-gray-900 p-5 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-red-500/10 text-red-400">
+                <Trash2 size={20} />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-bold text-white">{confirmDialog.title}</h3>
+                <p className="mt-2 text-sm text-gray-300 leading-relaxed">{confirmDialog.message}</p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmDialog((prev) => ({ ...prev, open: false }))}
+                className="rounded-lg border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-gray-200 hover:bg-gray-700"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (confirmDialog.onConfirm) {
+                    await confirmDialog.onConfirm();
+                  }
+                  setConfirmDialog((prev) => ({ ...prev, open: false }));
+                }}
+                className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600"
+              >
+                {confirmDialog.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal producto */}
       {modal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
@@ -429,11 +587,16 @@ export default function ProductosPage() {
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
                   >
                     <option value="">Selecciona</option>
-                    {categorias.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.icono} {cat.nombre}
-                      </option>
-                    ))}
+                    {categorias
+                      .filter((cat) => !cat.parentId)
+                      .map((cat) => (
+                        <optgroup key={cat.id} label={`${cat.icono || '📦'} ${cat.nombre}`}>
+                          <option value={cat.id}>{cat.icono} {cat.nombre}</option>
+                          {(cat.subcategorias || []).map((sub) => (
+                            <option key={sub.id} value={sub.id}>↳ {sub.nombre}</option>
+                          ))}
+                        </optgroup>
+                      ))}
                   </select>
                 </div>
               </div>
@@ -618,7 +781,9 @@ export default function ProductosPage() {
       {modalCategoria && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
           <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-sm border border-gray-800">
-            <h3 className="text-white font-bold text-lg mb-4">Nueva categoría</h3>
+            <h3 className="text-white font-bold text-lg mb-4">
+              {editandoCategoria ? 'Editar categoría' : 'Nueva categoría'}
+            </h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-1">Nombre</label>
@@ -627,19 +792,68 @@ export default function ProductosPage() {
                   value={formCategoria.nombre}
                   onChange={(e) => setFormCategoria({ ...formCategoria, nombre: e.target.value })}
                   className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
-                  placeholder="Ej: Hamburguesas, Bebidas, Postres..."
+                  placeholder="Ej: Postobón, Hamburguesas..."
                 />
               </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">Pertenece a</label>
+                <select
+                  value={formCategoria.parentId}
+                  onChange={(e) => setFormCategoria({ ...formCategoria, parentId: e.target.value })}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+                >
+                  <option value="">Categoría principal</option>
+                  {categorias
+                    .filter((cat) => !cat.parentId)
+                    .map((cat) => (
+                      <option key={cat.id} value={String(cat.id)}>
+                        {cat.icono || '📦'} {cat.nombre}
+                      </option>
+                    ))}
+                </select>
+              </div>
               <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm text-gray-400 mb-1">Ícono (emoji)</label>
-                  <input
-                    type="text"
-                    value={formCategoria.icono}
-                    onChange={(e) => setFormCategoria({ ...formCategoria, icono: e.target.value })}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
-                    placeholder="🍔"
-                  />
+                <div className="col-span-2">
+                  <label className="block text-sm text-gray-400 mb-2">Ícono</label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setSelectorIconoAbierto((prev) => !prev)}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500 flex items-center justify-between"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className="text-lg">{formCategoria.icono}</span>
+                        <span>Seleccionar ícono</span>
+                      </span>
+                      <span className="text-gray-400">▾</span>
+                    </button>
+
+                    {selectorIconoAbierto && (
+                      <div className="absolute z-20 mt-2 w-full rounded-xl border border-gray-700 bg-gray-900 p-2 shadow-2xl">
+                        <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1">
+                          {ICONOS_CATEGORIA.map((icono, index) => (
+                            <button
+                              key={`${icono}-${index}`}
+                              type="button"
+                              onClick={() => {
+                                setFormCategoria({ ...formCategoria, icono });
+                                setSelectorIconoAbierto(false);
+                              }}
+                              className={`w-10 h-10 rounded-lg border text-xl flex items-center justify-center transition-colors ${
+                                formCategoria.icono === icono
+                                  ? 'border-orange-500 bg-orange-500/10 ring-1 ring-orange-500/60'
+                                  : 'border-gray-700 bg-gray-800 hover:border-gray-500'
+                              }`}
+                              title={icono}
+                            >
+                              {icono}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Color</label>
@@ -661,8 +875,8 @@ export default function ProductosPage() {
               <button onClick={() => setModalCategoria(false)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-white rounded-lg py-3 transition-colors">
                 Cancelar
               </button>
-              <button onClick={crearCategoria} disabled={loading} className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/50 text-white font-bold rounded-lg py-3 transition-colors">
-                {loading ? 'Creando...' : 'Crear categoría'}
+              <button onClick={guardarCategoria} disabled={loading} className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/50 text-white font-bold rounded-lg py-3 transition-colors">
+                {loading ? (editandoCategoria ? 'Guardando...' : 'Creando...') : (editandoCategoria ? 'Guardar cambios' : 'Crear categoría')}
               </button>
             </div>
           </div>

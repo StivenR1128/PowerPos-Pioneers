@@ -1,0 +1,40 @@
+erDiagram
+  Usuario {
+    Int id PK
+    Int empresaId FK "nullable"
+    Int sucursalId FK "nullable"
+    String nombre
+    String email UK
+  }
+  Ingrediente {
+    Int id PK
+    String nombre
+    Decimal stock
+  }
+  MovimientoInventario {
+    Int id PK
+    Int ingredienteId FK
+    Int usuarioId FK
+  }
+  Preparacion {
+    Int id PK
+    Int empresaId FK
+    String nombre
+  }
+  LotePreparacion {
+    Int id PK
+    Int empresaId FK
+    Int preparacionId FK
+    Int usuarioId FK
+  }
+  LotePreparacionIngrediente {
+    Int id PK
+    Int loteId FK
+    Int ingredienteId FK
+  }
+  Ingrediente ||..o{ MovimientoInventario : "ingredienteId"
+  Usuario ||..o{ MovimientoInventario : "usuarioId"
+  Preparacion ||..o{ LotePreparacion : "preparacionId"
+  Usuario ||..o{ LotePreparacion : "usuarioId"
+  LotePreparacion ||..o{ LotePreparacionIngrediente : "loteId"
+  Ingrediente ||..o{ LotePreparacionIngrediente : "ingredienteId"

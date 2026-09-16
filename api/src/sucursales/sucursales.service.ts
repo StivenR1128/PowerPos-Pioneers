@@ -23,6 +23,22 @@ export class SucursalesService {
     });
   }
 
+  async actualizar(id: number, empresaId: number, datos: any) {
+    const sucursal = await this.prisma.sucursal.findFirst({ where: { id, empresaId } });
+    if (!sucursal) throw new NotFoundException('Sucursal no encontrada');
+
+    const payload = {
+      nombre: datos.nombre?.trim() || sucursal.nombre,
+      direccion: datos.direccion === '' ? null : (datos.direccion ?? sucursal.direccion),
+      telefono: datos.telefono === '' ? null : (datos.telefono ?? sucursal.telefono),
+    };
+
+    return this.prisma.sucursal.update({
+      where: { id },
+      data: payload,
+    });
+  }
+
   async toggleActivo(id: number, empresaId: number) {
     const sucursal = await this.prisma.sucursal.findFirst({ where: { id, empresaId } });
     if (!sucursal) throw new NotFoundException('Sucursal no encontrada');

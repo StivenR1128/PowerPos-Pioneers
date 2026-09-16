@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
+import { Keyboard } from 'lucide-react';
+import TouchKeyboard from '@/components/TouchKeyboard';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +13,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [tecladoVisible, setTecladoVisible] = useState(false);
+  const [campoActivo, setCampoActivo] = useState<'email' | 'password'>('email');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,7 +58,17 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">
-          <h2 className="text-xl font-semibold text-white mb-6">Iniciar sesión</h2>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-white">Iniciar sesión</h2>
+            <button
+              type="button"
+              onClick={() => setTecladoVisible((prev) => !prev)}
+              title="Teclado en pantalla"
+              className={`p-2 rounded-lg border transition-colors ${tecladoVisible ? 'bg-orange-500 border-orange-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-400 hover:text-white'}`}
+            >
+              <Keyboard size={18} />
+            </button>
+          </div>
 
           {error && (
             <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg p-3 mb-4 text-sm">
@@ -69,6 +83,7 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => setCampoActivo('email')}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
                 placeholder="tu@email.com"
                 required
@@ -81,6 +96,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setCampoActivo('password')}
                 className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-orange-500 transition-colors"
                 placeholder="••••••••"
                 required
@@ -97,6 +113,15 @@ export default function LoginPage() {
           </form>
         </div>
       </div>
+
+      {tecladoVisible && (
+        <TouchKeyboard
+          titulo={campoActivo === 'email' ? 'Escribiendo: Email' : 'Escribiendo: Contraseña'}
+          value={campoActivo === 'email' ? email : password}
+          onChange={campoActivo === 'email' ? setEmail : setPassword}
+          onClose={() => setTecladoVisible(false)}
+        />
+      )}
     </div>
   );
 }

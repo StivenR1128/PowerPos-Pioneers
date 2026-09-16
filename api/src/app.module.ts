@@ -15,12 +15,14 @@ import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { EmpresaModule } from './empresa/empresa.module';
 import { FinancieroModule } from './financiero/financiero.module';
 import { InventarioModule } from './inventario/inventario.module';
+import { PreparacionesModule } from './preparaciones/preparaciones.module';
 import { ClientesModule } from './clientes/clientes.module';
 import { TareasModule } from './tareas/tareas.module';
 import { ReportesModule } from './reportes/reportes.module';
 import { ImpresionModule } from './impresion/impresion.module';
 import { SuperadminModule } from './superadmin/superadmin.module';
 import { AuditoriaModule } from './auditoria/auditoria.module';
+import { ConsumoEmpleadosModule } from './consumo-empleados/consumo-empleados.module';
 
 @Module({
   imports: [
@@ -38,12 +40,14 @@ import { AuditoriaModule } from './auditoria/auditoria.module';
     EmpresaModule,
     FinancieroModule,
     InventarioModule,
+    PreparacionesModule,
     ClientesModule,
     TareasModule,
     ReportesModule,
     ImpresionModule,
     SuperadminModule,
     AuditoriaModule,
+    ConsumoEmpleadosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

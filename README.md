@@ -1,4 +1,10 @@
-markdown# PowerPOS Pioneers 🍔
+# PowerPOS Pioneers 🍔
+
+## Documentación del proyecto
+
+Consulta el [expediente académico y técnico](docs/README.md) y el [paquete de entrega al cliente](docs/cliente/README.md), con requerimientos, diagramas entidad-relación, diccionario de datos, API, instalación, manuales, pruebas y acta de entrega. Las versiones imprimibles están en [docs/entregables](docs/entregables/).
+
+La documentación describe el código revisado el 15 de septiembre de 2026 y distingue funciones observadas, limitaciones y pruebas pendientes.
 
 Sistema de gestión gastronómica empresarial moderno, escalable y en tiempo real.
 

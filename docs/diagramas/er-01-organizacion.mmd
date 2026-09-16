@@ -1,0 +1,28 @@
+erDiagram
+  Empresa {
+    Int id PK
+    String nombre
+    String nit UK
+  }
+  Sucursal {
+    Int id PK
+    Int empresaId FK
+    String nombre
+  }
+  Usuario {
+    Int id PK
+    Int empresaId FK "nullable"
+    Int sucursalId FK "nullable"
+    String nombre
+    String email UK
+  }
+  Auditoria {
+    Int id PK
+    Int empresaId FK "nullable"
+    Int usuarioId FK "nullable"
+  }
+  Empresa ||..o{ Sucursal : "empresaId"
+  Empresa |o..o{ Usuario : "empresaId"
+  Sucursal |o..o{ Usuario : "sucursalId"
+  Empresa |o..o{ Auditoria : "empresaId"
+  Usuario |o..o{ Auditoria : "usuarioId"

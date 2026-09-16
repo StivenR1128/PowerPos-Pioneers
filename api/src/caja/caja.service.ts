@@ -1,4 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
 
@@ -9,7 +10,22 @@ export class CajaService {
     private notificaciones: NotificacionesService,
   ) {}
 
-  async abrirCaja(datos: any, usuarioId: number, sucursalId: number) {
+  async abrirCaja(datos: any, usuarioId: number, sucursalId: number, empresaId?: number) {
+    const montoInicial = Number(datos?.montoInicial ?? 0);
+    const cajeroId = Number(datos?.cajeroId ?? usuarioId);
+
+    if (Number.isNaN(montoInicial) || montoInicial < 0) {
+      throw new BadRequestException('El monto base de la caja es inválido');
+    }
+
+    const cajero = await this.prisma.usuario.findFirst({
+      where: { id: cajeroId, empresaId: empresaId ?? undefined, activo: true },
+    });
+
+    if (!cajero) {
+      throw new BadRequestException('El cajero seleccionado no existe o no está activo');
+    }
+
     const cajaAbierta = await this.prisma.caja.findFirst({
       where: { sucursalId, estado: 'ABIERTA' },
     });
@@ -21,40 +37,62 @@ export class CajaService {
     const caja = await this.prisma.caja.create({
       data: {
         sucursalId,
-        usuarioId,
-        montoInicial: datos.montoInicial,
+        usuarioId: cajeroId,
+        montoInicial,
         estado: 'ABIERTA',
       },
       include: {
         usuario: { select: { nombre: true } },
-        sucursal: { select: { nombre: true } },
+        sucursal: { select: { nombre: true, empresaId: true } },
       },
     });
 
     await this.registrarEvento({
       cajaId: caja.id,
       tipo: 'APERTURA',
-      descripcion: `Caja abierta por ${caja.usuario.nombre} con monto inicial $${Number(datos.montoInicial).toLocaleString()}`,
-      usuarioId,
+      descripcion: `Caja abierta por ${caja.usuario.nombre} con monto inicial $${Number(montoInicial).toLocaleString()}`,
+      usuarioId: cajeroId,
       esAlerta: false,
     });
 
     await this.notificaciones.enviarAlerta({
       tipo: 'APERTURA DE CAJA',
-      mensaje: `✅ Caja abierta por ${caja.usuario.nombre} con monto inicial $${Number(datos.montoInicial).toLocaleString()} en ${caja.sucursal.nombre}`,
-      empresa: 'PowerPOS',
+      mensaje: `✅ Caja abierta por ${caja.usuario.nombre} con base diaria de $${montoInicial.toLocaleString()} en ${caja.sucursal.nombre}. Esa base no se contabiliza como venta.`,
+      empresa: caja.sucursal?.nombre ? caja.sucursal.nombre : 'PowerPOS',
       sucursal: caja.sucursal.nombre,
+      empresaId: caja.sucursal?.empresaId ?? empresaId,
     });
 
     return caja;
   }
 
-  async cerrarCaja(cajaId: number, datos: any, usuarioId: number) {
+  @Cron('*/5 * * * *')
+  async cerrarCajaAutomaticaPorHorario() {
+    const cajasAbiertas = await this.prisma.caja.findMany({
+      where: { estado: 'ABIERTA' },
+      include: {
+        sucursal: { select: { nombre: true, empresaId: true } },
+        usuario: { select: { nombre: true } },
+        pedidos: { where: { estado: { not: 'ANULADO' } } },
+      },
+    });
+
+    const ahora = new Date();
+
+    for (const caja of cajasAbiertas) {
+      const horario = this.obtenerHorarioTurno(ahora);
+      if (!horario.activo) {
+        await this.cerrarCaja(caja.id, { montoFinal: this.calcularMontoEsperado(caja) }, caja.usuarioId, true);
+      }
+    }
+  }
+
+  async cerrarCaja(cajaId: number, datos: any, usuarioId: number, automatico = false) {
     const caja = await this.prisma.caja.findUnique({
       where: { id: cajaId },
       include: {
         pedidos: true,
-        sucursal: { select: { nombre: true } },
+        sucursal: { select: { nombre: true, empresaId: true } },
         usuario: { select: { nombre: true } },
       },
     });
@@ -67,24 +105,29 @@ export class CajaService {
       .reduce((acc, p) => acc + Number(p.total), 0);
 
     const montoEsperado = Number(caja.montoInicial) + totalVentas;
-    const diferencia = Number(datos.montoFinal) - montoEsperado;
+    const montoFinal = datos?.montoFinal !== undefined && datos.montoFinal !== null && datos.montoFinal !== ''
+      ? Number(datos.montoFinal)
+      : montoEsperado;
+    const diferencia = montoFinal - montoEsperado;
 
     const cajaActualizada = await this.prisma.caja.update({
       where: { id: cajaId },
       data: {
         estado: 'CERRADA',
-        montoFinal: datos.montoFinal,
+        montoFinal,
         diferencia,
         cerradaEn: new Date(),
       },
     });
 
+    const tipoEvento = automatico ? 'CIERRE AUTOMÁTICO' : 'CIERRE';
+
     await this.registrarEvento({
       cajaId,
-      tipo: 'CIERRE',
-      descripcion: `Caja cerrada. Total ventas: $${totalVentas.toLocaleString()}. Diferencia: $${diferencia.toLocaleString()}`,
+      tipo: automatico ? 'CIERRE' : 'CIERRE',
+      descripcion: `${automatico ? 'Cierre automático' : 'Caja cerrada'}. Total ventas: $${totalVentas.toLocaleString()}. Diferencia: $${diferencia.toLocaleString()}`,
       usuarioId,
-      esAlerta: false,
+      esAlerta: automatico ? false : false,
     });
 
     if (Math.abs(diferencia) > 1000) {
@@ -99,19 +142,45 @@ export class CajaService {
       await this.notificaciones.enviarAlerta({
         tipo: 'DIFERENCIA EN CAJA',
         mensaje: `⚠️ Diferencia de $${diferencia.toLocaleString()} detectada al cerrar caja. Esperado: $${montoEsperado.toLocaleString()}, Contado: $${Number(datos.montoFinal).toLocaleString()}`,
-        empresa: 'PowerPOS',
+        empresa: caja.sucursal?.nombre || 'PowerPOS',
         sucursal: caja.sucursal.nombre,
+        empresaId: caja.sucursal?.empresaId,
       });
     }
 
     await this.notificaciones.enviarAlerta({
-      tipo: 'CIERRE DE CAJA',
-      mensaje: `Caja cerrada por ${caja.usuario.nombre}. Total ventas: $${totalVentas.toLocaleString()}. Monto final: $${Number(datos.montoFinal).toLocaleString()}`,
-      empresa: 'PowerPOS',
+      tipo: automatico ? 'CIERRE AUTOMÁTICO DE CAJA' : 'CIERRE DE CAJA',
+      mensaje: `${automatico ? 'Cierre automático' : 'Caja cerrada por ' + caja.usuario.nombre}. Total ventas: $${totalVentas.toLocaleString()}. Monto final: $${montoFinal.toLocaleString()}`,
+      empresa: caja.sucursal?.nombre || 'PowerPOS',
       sucursal: caja.sucursal.nombre,
+      empresaId: caja.sucursal?.empresaId,
     });
 
-    return { ...cajaActualizada, totalVentas, montoEsperado, diferencia };
+    return { ...cajaActualizada, totalVentas, montoEsperado, diferencia, automatico };
+  }
+
+  private calcularMontoEsperado(caja: any) {
+    const totalVentas = caja.pedidos
+      .filter((p: any) => p.estado !== 'ANULADO')
+      .reduce((acc: number, p: any) => acc + Number(p.total), 0);
+    return Number(caja.montoInicial) + totalVentas;
+  }
+
+  private obtenerHorarioTurno(fecha: Date) {
+    const dia = fecha.getDay();
+    const hora = fecha.getHours();
+    const minutos = fecha.getMinutes();
+    const tiempo = hora * 60 + minutos;
+
+    const esLaboral = dia >= 1 && dia <= 5;
+    const inicio = esLaboral ? 15 * 60 : 12 * 60;
+    const fin = 22 * 60;
+
+    return {
+      activo: tiempo >= inicio && tiempo < fin,
+      inicio,
+      fin,
+    };
   }
 
   async obtenerCajaAbierta(sucursalId: number) {

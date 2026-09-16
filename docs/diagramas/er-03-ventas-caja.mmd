@@ -1,0 +1,47 @@
+erDiagram
+  Producto {
+    Int id PK
+    Int empresaId FK
+    Int categoriaId FK
+    String nombre
+  }
+  Adicional {
+    Int id PK
+    Int empresaId FK
+    String nombre
+    Int ingredienteId FK "nullable"
+    Decimal cantidad "nullable"
+  }
+  Cliente {
+    Int id PK
+    Int empresaId FK
+    String nombre
+  }
+  Pedido {
+    Int id PK
+    Int sucursalId FK
+    Int usuarioId FK
+    Int clienteId FK "nullable"
+    Int cajaId FK "nullable"
+    String numero UK
+    EstadoPedido estado
+    Decimal total
+  }
+  DetallePedido {
+    Int id PK
+    Int pedidoId FK
+    Int productoId FK
+    Int cantidad
+  }
+  DetallePedidoAdicional {
+    Int id PK
+    Int detallePedidoId FK
+    Int adicionalId FK
+    String nombre
+    Int cantidad
+  }
+  Cliente |o..o{ Pedido : "clienteId"
+  Pedido ||..o{ DetallePedido : "pedidoId"
+  Producto ||..o{ DetallePedido : "productoId"
+  DetallePedido ||..o{ DetallePedidoAdicional : "detallePedidoId"
+  Adicional ||..o{ DetallePedidoAdicional : "adicionalId"

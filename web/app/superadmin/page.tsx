@@ -31,6 +31,7 @@ interface Empresa {
   permisos: Record<string, boolean>;
   modoPreparacion: 'KDS' | 'COMANDAS';
   facturacionElectronicaHabilitada: boolean;
+  consumoEmpleadosHabilitado: boolean;
   _count: { usuarios: number; sucursales: number };
 }
 
@@ -66,13 +67,17 @@ export default function SuperadminPage() {
   const [permisos, setPermisos] = useState<Record<string, boolean>>({});
   const [modoPreparacion, setModoPreparacion] = useState<'KDS' | 'COMANDAS'>('KDS');
   const [facturacionHabilitada, setFacturacionHabilitada] = useState(false);
+  const [consumoEmpleadosHabilitado, setConsumoEmpleadosHabilitado] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState('');
   const [mostrarCrear, setMostrarCrear] = useState(false);
   const [creando, setCreando] = useState(false);
   const [planNuevo, setPlanNuevo] = useState<Plan>('BASICO');
-  const [nuevaEmpresa, setNuevaEmpresa] = useState({ nombre: '', nit: '', email: '', telefono: '', direccion: '', adminNombre: '', adminEmail: '', adminPassword: '' });
+  const [administradores, setAdministradores] = useState<Array<{ nombre: string; email: string; password: string }>>([
+    { nombre: '', email: '', password: '' },
+  ]);
+  const [nuevaEmpresa, setNuevaEmpresa] = useState({ nombre: '', nit: '', email: '', telefono: '', direccion: '' });
 
   const seleccionarEmpresa = (empresa: Empresa) => {
     setSeleccionada(empresa);
@@ -80,6 +85,7 @@ export default function SuperadminPage() {
     setPermisos(empresa.permisos || {});
     setModoPreparacion(empresa.modoPreparacion || 'KDS');
     setFacturacionHabilitada(Boolean(empresa.facturacionElectronicaHabilitada));
+    setConsumoEmpleadosHabilitado(Boolean(empresa.consumoEmpleadosHabilitado));
   };
 
   const cargarDatos = async () => {
@@ -126,7 +132,7 @@ export default function SuperadminPage() {
     if (!seleccionada) return;
     setGuardando(true);
     try {
-      await api.patch(`/superadmin/empresas/${seleccionada.id}/configuracion`, { plan, permisos, modoPreparacion, facturacionElectronicaHabilitada: facturacionHabilitada });
+      await api.patch(`/superadmin/empresas/${seleccionada.id}/configuracion`, { plan, permisos, modoPreparacion, facturacionElectronicaHabilitada: facturacionHabilitada, consumoEmpleadosHabilitado });
       await cargarDatos();
     } finally {
       setGuardando(false);
@@ -138,19 +144,63 @@ export default function SuperadminPage() {
     await cargarDatos();
   };
 
+  const agregarAdministrador = () => {
+    setAdministradores((actuales) => {
+      if (actuales.length >= 3) return actuales;
+      return [...actuales, { nombre: '', email: '', password: '' }];
+    });
+  };
+
+  const actualizarAdministrador = (index: number, campo: 'nombre' | 'email' | 'password', valor: string) => {
+    setAdministradores((actuales) => actuales.map((admin, i) => i === index ? { ...admin, [campo]: valor } : admin));
+  };
+
+  const quitarAdministrador = (index: number) => {
+    setAdministradores((actuales) => {
+      if (actuales.length === 1) return actuales;
+      return actuales.filter((_, i) => i !== index);
+    });
+  };
+
   const crearEmpresa = async (event: React.FormEvent) => {
     event.preventDefault();
     setCreando(true);
     setError('');
+
+    const administradoresValidos = administradores
+      .map((admin) => ({ ...admin, nombre: admin.nombre.trim(), email: admin.email.trim(), password: admin.password.trim() }))
+      .filter((admin) => admin.nombre || admin.email || admin.password);
+
+    if (administradoresValidos.length === 0) {
+      setError('Debe ingresar al menos un administrador para la empresa.');
+      setCreando(false);
+      return;
+    }
+
+    if (administradoresValidos.length > 3) {
+      setError('La empresa puede tener máximo 3 administradores.');
+      setCreando(false);
+      return;
+    }
+
+    const tieneCamposIncompletos = administradoresValidos.some((admin) => !admin.nombre || !admin.email || !admin.password);
+    if (tieneCamposIncompletos) {
+      setError('Cada administrador debe incluir nombre, email y contraseña.');
+      setCreando(false);
+      return;
+    }
+
     try {
       await api.post('/superadmin/empresas', {
         empresa: { nombre: nuevaEmpresa.nombre, nit: nuevaEmpresa.nit, email: nuevaEmpresa.email, telefono: nuevaEmpresa.telefono, direccion: nuevaEmpresa.direccion },
-        admin: { nombre: nuevaEmpresa.adminNombre, email: nuevaEmpresa.adminEmail, password: nuevaEmpresa.adminPassword },
+        admin: administradoresValidos[0],
+        administradores: administradoresValidos,
         plan: planNuevo,
         permisos: permisosPorPlan[planNuevo].reduce((acceso, modulo) => ({ ...acceso, [modulo]: true }), {} as Record<string, boolean>),
       });
       setMostrarCrear(false);
-      setNuevaEmpresa({ nombre: '', nit: '', email: '', telefono: '', direccion: '', adminNombre: '', adminEmail: '', adminPassword: '' });
+      setNuevaEmpresa({ nombre: '', nit: '', email: '', telefono: '', direccion: '' });
+      setAdministradores([{ nombre: '', email: '', password: '' }]);
       setPlanNuevo('BASICO');
       await cargarDatos();
     } catch (err: any) {
@@ -202,6 +252,8 @@ export default function SuperadminPage() {
               <p className="text-slate-500 text-xs mt-2">KDS es el modo predeterminado para nuevas empresas.</p>
               <label className="flex items-center justify-between gap-3 bg-slate-800/60 rounded-lg px-3 py-2.5 text-sm mt-4"><span>Facturacion electronica</span><input type="checkbox" checked={facturacionHabilitada} onChange={(event) => setFacturacionHabilitada(event.target.checked)} className="h-4 w-4 accent-orange-500" /></label>
               <p className="text-slate-500 text-xs mt-2">Debe configurarse con un proveedor tecnologico. Permanece desactivada para el Trailer del Sabor.</p>
+              <label className="flex items-center justify-between gap-3 bg-slate-800/60 rounded-lg px-3 py-2.5 text-sm mt-4"><span>Consumo de empleados</span><input type="checkbox" checked={consumoEmpleadosHabilitado} onChange={(event) => setConsumoEmpleadosHabilitado(event.target.checked)} className="h-4 w-4 accent-orange-500" /></label>
+              <p className="text-slate-500 text-xs mt-2">Permite registrar la comida que se le da al personal. No se contabiliza como venta, pero sí descuenta inventario.</p>
               <div className="mt-6 space-y-2">{MODULOS.map((modulo) => <label key={modulo.id} className="flex items-center justify-between gap-3 bg-slate-800/60 rounded-lg px-3 py-2.5 text-sm"><span>{modulo.label}</span><input type="checkbox" checked={Boolean(permisos[modulo.id])} onChange={(event) => setPermisos((actuales) => ({ ...actuales, [modulo.id]: event.target.checked }))} className="h-4 w-4 accent-orange-500" /></label>)}</div>
               <button onClick={guardarConfiguracion} disabled={guardando} className="w-full mt-6 bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-white font-bold rounded-lg py-2.5 flex items-center justify-center gap-2"><Save size={16} /> {guardando ? 'Guardando...' : 'Guardar configuracion'}</button>
             </>}

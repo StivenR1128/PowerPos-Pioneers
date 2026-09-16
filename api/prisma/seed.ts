@@ -87,7 +87,7 @@ async function main() {
   });
 
   const ingredientesHamburguesa = [
-    { nombre: 'Pan de hamburguesa', unidad: 'unidad', cantidad: 1, stock: 100, stockMinimo: 20 },
+    { nombre: 'Pan de hamburguesa', unidad: 'unidad', cantidad: 1, stock: 100, stockMinimo: 20, unidadCompra: 'paquete', factorConversion: 12 },
     { nombre: 'Carne de res', unidad: 'gramos', cantidad: 150, stock: 5000, stockMinimo: 500 },
     { nombre: 'Lechuga', unidad: 'gramos', cantidad: 30, stock: 1000, stockMinimo: 200 },
     { nombre: 'Tomate', unidad: 'gramos', cantidad: 40, stock: 2000, stockMinimo: 300 },
@@ -98,7 +98,14 @@ async function main() {
 
   for (const ing of ingredientesHamburguesa) {
     const ingrediente = await prisma.ingrediente.create({
-      data: { nombre: ing.nombre, unidad: ing.unidad, stock: ing.stock, stockMinimo: ing.stockMinimo },
+      data: {
+        nombre: ing.nombre,
+        unidad: ing.unidad,
+        stock: ing.stock,
+        stockMinimo: ing.stockMinimo,
+        unidadCompra: ing.unidadCompra || null,
+        factorConversion: ing.factorConversion ?? null,
+      },
     });
     await prisma.productoIngrediente.create({
       data: { productoId: hamburguesa.id, ingredienteId: ingrediente.id, cantidad: ing.cantidad },
@@ -139,7 +146,7 @@ async function main() {
   });
 
   const ingredientesPerro = [
-    { nombre: 'Pan de perro', unidad: 'unidad', cantidad: 1, stock: 100, stockMinimo: 20 },
+    { nombre: 'Pan de perro', unidad: 'unidad', cantidad: 1, stock: 100, stockMinimo: 20, unidadCompra: 'paquete', factorConversion: 10 },
     { nombre: 'Salchicha', unidad: 'unidad', cantidad: 1, stock: 200, stockMinimo: 30 },
     { nombre: 'Papas fritas', unidad: 'gramos', cantidad: 100, stock: 3000, stockMinimo: 500 },
     { nombre: 'Mostaza', unidad: 'gramos', cantidad: 15, stock: 500, stockMinimo: 100 },
@@ -148,7 +155,14 @@ async function main() {
 
   for (const ing of ingredientesPerro) {
     const ingrediente = await prisma.ingrediente.create({
-      data: { nombre: ing.nombre, unidad: ing.unidad, stock: ing.stock, stockMinimo: ing.stockMinimo },
+      data: {
+        nombre: ing.nombre,
+        unidad: ing.unidad,
+        stock: ing.stock,
+        stockMinimo: ing.stockMinimo,
+        unidadCompra: ing.unidadCompra || null,
+        factorConversion: ing.factorConversion ?? null,
+      },
     });
     await prisma.productoIngrediente.create({
       data: { productoId: perro.id, ingredienteId: ingrediente.id, cantidad: ing.cantidad },

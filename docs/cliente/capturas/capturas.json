@@ -1,0 +1,104 @@
+{
+  "fecha": "2026-09-16T05:47:10.922Z",
+  "origen": "Frontend real; API interceptada con datos sintéticos; no prueba integración backend.",
+  "captures": [
+    {
+      "archivo": "01-login.png",
+      "ruta": "/login"
+    },
+    {
+      "archivo": "02-dashboard.png",
+      "ruta": "/dashboard"
+    },
+    {
+      "archivo": "03-cierre-caja.png",
+      "ruta": "/dashboard"
+    },
+    {
+      "archivo": "04-apertura-general.png",
+      "ruta": "/dashboard"
+    },
+    {
+      "archivo": "04-apertura-caja.png",
+      "ruta": "/dashboard"
+    },
+    {
+      "archivo": "05-pos.png",
+      "ruta": "/pos"
+    },
+    {
+      "archivo": "06-personalizar-pedido.png",
+      "ruta": "/pos"
+    },
+    {
+      "archivo": "07-cocina.png",
+      "ruta": "/cocina"
+    },
+    {
+      "archivo": "08-productos.png",
+      "ruta": "/productos"
+    },
+    {
+      "archivo": "09-producto-formulario.png",
+      "ruta": "/productos"
+    },
+    {
+      "archivo": "10-inventario.png",
+      "ruta": "/inventario"
+    },
+    {
+      "archivo": "11-clientes.png",
+      "ruta": "/clientes"
+    },
+    {
+      "archivo": "12-cliente-formulario.png",
+      "ruta": "/clientes"
+    },
+    {
+      "archivo": "13-financiero.png",
+      "ruta": "/financiero"
+    },
+    {
+      "archivo": "14-reportes.png",
+      "ruta": "/reportes"
+    },
+    {
+      "archivo": "15-configuracion.png",
+      "ruta": "/configuracion"
+    },
+    {
+      "archivo": "16-perfil.png",
+      "ruta": "/configuracion"
+    },
+    {
+      "archivo": "17-sucursales.png",
+      "ruta": "/configuracion"
+    },
+    {
+      "archivo": "18-usuarios.png",
+      "ruta": "/configuracion"
+    },
+    {
+      "archivo": "19-consumo-empleados.png",
+      "ruta": "/consumo-empleados"
+    },
+    {
+      "archivo": "20-pantalla-cliente.png",
+      "ruta": "/cliente"
+    },
+    {
+      "archivo": "20-pantalla-cliente.png",
+      "ruta": "/cliente"
+    },
+    {
+      "archivo": "21-llamado.png",
+      "ruta": "/llamado"
+    },
+    {
+      "archivo": "21-llamado.png",
+      "ruta": "/llamado"
+    }
+  ],
+  "errores": [],
+  "peticionesInterceptadas": 52
+}

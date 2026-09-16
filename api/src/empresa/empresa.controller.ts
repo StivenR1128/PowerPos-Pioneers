@@ -39,7 +39,8 @@ export class EmpresaController {
     limits: { fileSize: 2 * 1024 * 1024 },
   }))
   async subirLogo(@UploadedFile() file: Express.Multer.File, @Request() req: any) {
-    const logoUrl = `http://localhost:3000/uploads/logos/${file.filename}`;
+    const baseUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+    const logoUrl = `${baseUrl}/uploads/logos/${file.filename}`;
     await this.empresaService.actualizarLogo(req.user.empresaId, logoUrl);
     return { logoUrl };
   }

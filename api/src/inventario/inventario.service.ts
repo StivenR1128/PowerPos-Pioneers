@@ -64,6 +64,7 @@ export class InventarioService {
         mensaje: `⚠️ ${ingrediente.nombre} fue creado con stock bajo: ${stockInicial} ${ingrediente.unidad} (mínimo: ${stockMinimo})`,
         empresa: 'PowerPOS',
         sucursal: 'Sucursal Principal',
+        empresaId: 1,
       });
     }
 
@@ -147,6 +148,7 @@ export class InventarioService {
         mensaje: `⚠️ ${ingrediente.nombre} tiene stock bajo: ${stockNuevo} ${ingrediente.unidad} (mínimo: ${ingrediente.stockMinimo})`,
         empresa: 'PowerPOS',
         sucursal: 'Sucursal Principal',
+        empresaId: 1,
       });
     }
 

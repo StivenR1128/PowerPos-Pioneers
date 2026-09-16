@@ -55,6 +55,7 @@ export default function ConfiguracionPage() {
   // ---- Sucursales ----
   const [sucursales, setSucursales] = useState<any[]>([]);
   const [modalNuevaSucursal, setModalNuevaSucursal] = useState(false);
+  const [sucursalEditando, setSucursalEditando] = useState<any | null>(null);
   const [loadingSucursal, setLoadingSucursal] = useState(false);
   const [formNuevaSucursal, setFormNuevaSucursal] = useState({ nombre: '', direccion: '', telefono: '' });
 
@@ -180,12 +181,34 @@ export default function ConfiguracionPage() {
     }
   };
 
-  const crearSucursal = async () => {
-    if (!formNuevaSucursal.nombre) return;
+  const abrirNuevaSucursal = () => {
+    setSucursalEditando(null);
+    setFormNuevaSucursal({ nombre: '', direccion: '', telefono: '' });
+    setModalNuevaSucursal(true);
+  };
+
+  const abrirEditarSucursal = (s: any) => {
+    setSucursalEditando(s);
+    setFormNuevaSucursal({
+      nombre: s.nombre || '',
+      direccion: s.direccion || '',
+      telefono: s.telefono || '',
+    });
+    setModalNuevaSucursal(true);
+  };
+
+  const guardarSucursal = async () => {
+    if (!formNuevaSucursal.nombre.trim()) return;
     setLoadingSucursal(true);
     try {
-      await api.post('/sucursales', formNuevaSucursal);
+      if (sucursalEditando) {
+        await api.patch(`/sucursales/${sucursalEditando.id}`, formNuevaSucursal);
+      } else {
+        await api.post('/sucursales', formNuevaSucursal);
+      }
+
       setModalNuevaSucursal(false);
+      setSucursalEditando(null);
       setFormNuevaSucursal({ nombre: '', direccion: '', telefono: '' });
       cargarSucursales();
     } catch (e) {
@@ -367,7 +390,7 @@ export default function ConfiguracionPage() {
               <div className="p-4 border-b border-gray-800 flex items-center justify-between">
                 <h3 className="text-white font-semibold">Sucursales de la empresa</h3>
                 <button
-                  onClick={() => setModalNuevaSucursal(true)}
+                  onClick={abrirNuevaSucursal}
                   className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg px-3 py-2 transition-colors"
                 >
                   <Plus size={16} />
@@ -389,14 +412,22 @@ export default function ConfiguracionPage() {
                           {s.direccion || 'Sin dirección registrada'} {s.telefono ? `· ${s.telefono}` : ''}
                         </div>
                       </div>
-                      <button
-                        onClick={() => toggleActivoSucursal(s)}
-                        className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
-                          s.activo ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400' : 'bg-green-500/10 hover:bg-green-500/20 text-green-400'
-                        }`}
-                      >
-                        {s.activo ? 'Inactivar' : 'Activar'}
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => abrirEditarSucursal(s)}
+                          className="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => toggleActivoSucursal(s)}
+                          className={`text-xs px-3 py-1.5 rounded-lg transition-colors ${
+                            s.activo ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400' : 'bg-green-500/10 hover:bg-green-500/20 text-green-400'
+                          }`}
+                        >
+                          {s.activo ? 'Inactivar' : 'Activar'}
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -456,7 +487,7 @@ export default function ConfiguracionPage() {
         {modalNuevaSucursal && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
             <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-gray-800">
-              <h3 className="text-white font-bold text-lg mb-4">Nueva sucursal</h3>
+              <h3 className="text-white font-bold text-lg mb-4">{sucursalEditando ? 'Editar sucursal' : 'Nueva sucursal'}</h3>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1">Nombre</label>
@@ -479,13 +510,17 @@ export default function ConfiguracionPage() {
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
-                <button onClick={() => setModalNuevaSucursal(false)}
+                <button onClick={() => {
+                    setModalNuevaSucursal(false);
+                    setSucursalEditando(null);
+                    setFormNuevaSucursal({ nombre: '', direccion: '', telefono: '' });
+                  }}
                   className="flex-1 bg-gray-800 hover:bg-gray-700 text-white rounded-lg py-3 transition-colors">
                   Cancelar
                 </button>
-                <button onClick={crearSucursal} disabled={loadingSucursal}
+                <button onClick={guardarSucursal} disabled={loadingSucursal}
                   className="flex-1 bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/50 text-white font-bold rounded-lg py-3 transition-colors">
-                  {loadingSucursal ? 'Creando...' : 'Crear sucursal'}
+                  {loadingSucursal ? (sucursalEditando ? 'Guardando...' : 'Creando...') : (sucursalEditando ? 'Guardar cambios' : 'Crear sucursal')}
                 </button>
               </div>
             </div>

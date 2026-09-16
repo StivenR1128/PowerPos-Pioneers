@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificacionesService } from '../notificaciones/notificaciones.service';
 import { PedidosEventosService } from './pedidos-eventos.service';
 
 @Injectable()
@@ -11,11 +12,36 @@ export class PedidosService {
   constructor(
     private prisma: PrismaService,
     private readonly eventos: PedidosEventosService,
+    private readonly notificaciones: NotificacionesService,
   ) {}
 
   async crearPedido(datos: any, usuarioId: number, empresaId: number) {
     const { items, metodoPago, clienteId, observacion, sucursalId, cajaId } =
       datos;
+
+    const cajaAbierta = await this.prisma.caja.findFirst({
+      where: { sucursalId, estado: 'ABIERTA' },
+      include: { usuario: { select: { id: true, nombre: true } } },
+    });
+
+    if (!cajaAbierta) {
+      throw new BadRequestException('Debe abrir la caja antes de registrar pedidos. Solo el administrador puede abrirla.');
+    }
+
+    const cajaActivaId = cajaId ? Number(cajaId) : cajaAbierta.id;
+    if (cajaId && Number(cajaId) !== cajaAbierta.id) {
+      throw new BadRequestException('La caja seleccionada no está abierta en esta sucursal');
+    }
+
+    const usuarioVendedor = await this.prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { nombre: true, rol: true },
+    });
+
+    const esSupervisor = usuarioVendedor?.rol === 'ADMIN_EMPRESA' || usuarioVendedor?.rol === 'GERENTE';
+    if (cajaAbierta.usuarioId !== usuarioId && !esSupervisor) {
+      throw new BadRequestException(`La caja abierta está asignada a ${cajaAbierta.usuario?.nombre || 'el cajero seleccionado'}. Solo ese usuario o un administrador puede registrar ventas.`);
+    }
 
     const sucursal = await this.prisma.sucursal.findFirst({
       where: { id: sucursalId, empresaId, activo: true },
@@ -133,7 +159,7 @@ export class PedidosService {
         sucursalId,
         usuarioId,
         clienteId: clienteId || null,
-        cajaId: cajaId || null,
+        cajaId: cajaActivaId,
         metodoPago: metodoPago || 'EFECTIVO',
         subtotal,
         descuento,
@@ -172,7 +198,7 @@ export class PedidosService {
           },
         },
         usuario: { select: { nombre: true } },
-        cliente: { select: { nombre: true } },
+        cliente: { select: { nombre: true, telefono: true } },
       },
     });
 
@@ -210,7 +236,31 @@ export class PedidosService {
       estado: pedido.estado,
     });
 
+    const mensajeVenta = `💰 Venta registrada por ${usuarioVendedor?.nombre || 'cajero'} (${usuarioVendedor?.rol || 'CAJERO'}) en ${sucursal.nombre}. Pedido #${pedido.numero}. Total: $${Number(total).toLocaleString()}.`;
+
+    await this.notificaciones.enviarAlerta({
+      tipo: 'VENTA REGISTRADA',
+      mensaje: mensajeVenta,
+      empresa: sucursal?.nombre || 'PowerPOS',
+      sucursal: sucursal.nombre,
+      empresaId,
+    });
+
     return pedido;
+  }
+
+  private obtenerCantidadInventario(ingrediente: any, cantidadReceta: number) {
+    const factorConversion = Number(ingrediente?.factorConversion ?? 0);
+    const tieneUnidadCompra =
+      !!ingrediente?.unidadCompra &&
+      String(ingrediente.unidadCompra).trim() !== '' &&
+      factorConversion > 0;
+
+    if (!tieneUnidadCompra) {
+      return Number(cantidadReceta);
+    }
+
+    return Number(cantidadReceta) * factorConversion;
   }
 
   private async descontarInventario(items: any[]) {
@@ -222,7 +272,10 @@ export class PedidosService {
 
         if (!excluido) {
           const cantidadADescontar =
-            Number(productoIngrediente.cantidad) * item.cantidad;
+            this.obtenerCantidadInventario(
+              productoIngrediente.ingrediente,
+              Number(productoIngrediente.cantidad),
+            ) * item.cantidad;
 
           await this.prisma.ingrediente.update({
             where: { id: productoIngrediente.ingredienteId },
@@ -267,7 +320,7 @@ export class PedidosService {
           },
         },
         usuario: { select: { nombre: true } },
-        cliente: { select: { nombre: true } },
+        cliente: { select: { nombre: true, telefono: true } },
       },
       orderBy: { creadoEn: 'desc' },
       take: 50,
@@ -287,7 +340,7 @@ export class PedidosService {
           },
         },
         usuario: { select: { nombre: true } },
-        cliente: { select: { nombre: true } },
+        cliente: { select: { nombre: true, telefono: true } },
         sucursal: { select: { nombre: true } },
       },
     });

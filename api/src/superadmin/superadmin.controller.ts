@@ -43,6 +43,7 @@ export class SuperadminController {
       permisos?: Record<string, boolean>;
       modoPreparacion?: 'KDS' | 'COMANDAS';
       facturacionElectronicaHabilitada?: boolean;
+      consumoEmpleadosHabilitado?: boolean;
     },
     @Request() req: any,
   ) {

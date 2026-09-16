@@ -13,6 +13,7 @@ interface Usuario {
   permisos?: Record<string, boolean>;
   modoPreparacion?: 'KDS' | 'COMANDAS';
   facturacionElectronicaHabilitada?: boolean;
+  consumoEmpleadosHabilitado?: boolean;
 }
 
 interface AuthStore {
@@ -33,11 +34,15 @@ export const useAuthStore = create<AuthStore>()(
       inicioSesion: null,
       hydrated: false,
       setAuth: (token, usuario) => {
-        localStorage.setItem('token', token);
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem('token', token);
+        }
         set({ token, usuario, inicioSesion: new Date().toISOString() });
       },
       logout: () => {
-        localStorage.removeItem('token');
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem('token');
+        }
         set({ token: null, usuario: null, inicioSesion: null });
       },
       setHydrated: () => set({ hydrated: true }),

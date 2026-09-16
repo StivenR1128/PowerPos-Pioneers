@@ -1,0 +1,198 @@
+erDiagram
+  Empresa {
+    Int id PK
+    String nombre
+    String nit UK
+  }
+  Sucursal {
+    Int id PK
+    Int empresaId FK
+    String nombre
+  }
+  Usuario {
+    Int id PK
+    Int empresaId FK "nullable"
+    Int sucursalId FK "nullable"
+    String nombre
+    String email UK
+  }
+  Categoria {
+    Int id PK
+    Int empresaId FK
+    Int parentId FK "nullable"
+    String nombre
+  }
+  Producto {
+    Int id PK
+    Int empresaId FK
+    Int categoriaId FK
+    String nombre
+  }
+  Ingrediente {
+    Int id PK
+    String nombre
+    Decimal stock
+  }
+  MovimientoInventario {
+    Int id PK
+    Int ingredienteId FK
+    Int usuarioId FK
+  }
+  ProductoIngrediente {
+    Int id PK
+    Int productoId FK
+    Int ingredienteId FK
+    Decimal cantidad
+  }
+  Preparacion {
+    Int id PK
+    Int empresaId FK
+    String nombre
+  }
+  PreparacionIngrediente {
+    Int id PK
+    Int preparacionId FK
+    Int ingredienteId FK
+    Decimal cantidad
+  }
+  LotePreparacion {
+    Int id PK
+    Int empresaId FK
+    Int preparacionId FK
+    Int usuarioId FK
+  }
+  LotePreparacionIngrediente {
+    Int id PK
+    Int loteId FK
+    Int ingredienteId FK
+  }
+  ProductoPreparacion {
+    Int id PK
+    Int productoId FK
+    Int preparacionId FK
+    Decimal cantidad
+  }
+  Adicional {
+    Int id PK
+    Int empresaId FK
+    String nombre
+    Int ingredienteId FK "nullable"
+    Decimal cantidad "nullable"
+  }
+  ProductoAdicional {
+    Int id PK
+    Int productoId FK
+    Int adicionalId FK
+  }
+  Cliente {
+    Int id PK
+    Int empresaId FK
+    String nombre
+  }
+  Pedido {
+    Int id PK
+    Int sucursalId FK
+    Int usuarioId FK
+    Int clienteId FK "nullable"
+    Int cajaId FK "nullable"
+    String numero UK
+    EstadoPedido estado
+    Decimal total
+  }
+  DetallePedido {
+    Int id PK
+    Int pedidoId FK
+    Int productoId FK
+    Int cantidad
+  }
+  DetallePedidoAdicional {
+    Int id PK
+    Int detallePedidoId FK
+    Int adicionalId FK
+    String nombre
+    Int cantidad
+  }
+  Caja {
+    Int id PK
+    Int sucursalId FK
+    Int usuarioId FK
+    EstadoCaja estado
+  }
+  EventoCaja {
+    Int id PK
+    Int cajaId FK
+    Int usuarioId FK
+  }
+  MovimientoFinanciero {
+    Int id PK
+    Int empresaId FK
+    Int sucursalId FK
+    Int usuarioId FK
+    Int pedidoId FK "nullable"
+  }
+  ConsumoEmpleado {
+    Int id PK
+    Int empresaId FK
+    Int sucursalId FK
+    Int usuarioId FK
+  }
+  ConsumoEmpleadoItem {
+    Int id PK
+    Int consumoEmpleadoId FK
+    Int productoId FK
+    Int cantidad
+  }
+  Auditoria {
+    Int id PK
+    Int empresaId FK "nullable"
+    Int usuarioId FK "nullable"
+  }
+  Empresa ||..o{ Sucursal : "empresaId"
+  Empresa |o..o{ Usuario : "empresaId"
+  Sucursal |o..o{ Usuario : "sucursalId"
+  Empresa ||..o{ Categoria : "empresaId"
+  Categoria |o..o{ Categoria : "parentId"
+  Empresa ||..o{ Producto : "empresaId"
+  Categoria ||..o{ Producto : "categoriaId"
+  Ingrediente ||..o{ MovimientoInventario : "ingredienteId"
+  Usuario ||..o{ MovimientoInventario : "usuarioId"
+  Producto ||..o{ ProductoIngrediente : "productoId"
+  Ingrediente ||..o{ ProductoIngrediente : "ingredienteId"
+  Empresa ||..o{ Preparacion : "empresaId"
+  Preparacion ||..o{ PreparacionIngrediente : "preparacionId"
+  Ingrediente ||..o{ PreparacionIngrediente : "ingredienteId"
+  Empresa ||..o{ LotePreparacion : "empresaId"
+  Preparacion ||..o{ LotePreparacion : "preparacionId"
+  Usuario ||..o{ LotePreparacion : "usuarioId"
+  LotePreparacion ||..o{ LotePreparacionIngrediente : "loteId"
+  Ingrediente ||..o{ LotePreparacionIngrediente : "ingredienteId"
+  Producto ||..o{ ProductoPreparacion : "productoId"
+  Preparacion ||..o{ ProductoPreparacion : "preparacionId"
+  Empresa ||..o{ Adicional : "empresaId"
+  Ingrediente |o..o{ Adicional : "ingredienteId"
+  Producto ||..o{ ProductoAdicional : "productoId"
+  Adicional ||..o{ ProductoAdicional : "adicionalId"
+  Empresa ||..o{ Cliente : "empresaId"
+  Sucursal ||..o{ Pedido : "sucursalId"
+  Usuario ||..o{ Pedido : "usuarioId"
+  Cliente |o..o{ Pedido : "clienteId"
+  Caja |o..o{ Pedido : "cajaId"
+  Pedido ||..o{ DetallePedido : "pedidoId"
+  Producto ||..o{ DetallePedido : "productoId"
+  DetallePedido ||..o{ DetallePedidoAdicional : "detallePedidoId"
+  Adicional ||..o{ DetallePedidoAdicional : "adicionalId"
+  Sucursal ||..o{ Caja : "sucursalId"
+  Usuario ||..o{ Caja : "usuarioId"
+  Caja ||..o{ EventoCaja : "cajaId"
+  Usuario ||..o{ EventoCaja : "usuarioId"
+  Empresa ||..o{ MovimientoFinanciero : "empresaId"
+  Sucursal ||..o{ MovimientoFinanciero : "sucursalId"
+  Usuario ||..o{ MovimientoFinanciero : "usuarioId"
+  Pedido |o..o{ MovimientoFinanciero : "pedidoId"
+  Empresa ||..o{ ConsumoEmpleado : "empresaId"
+  Sucursal ||..o{ ConsumoEmpleado : "sucursalId"
+  Usuario ||..o{ ConsumoEmpleado : "usuarioId"
+  ConsumoEmpleado ||..o{ ConsumoEmpleadoItem : "consumoEmpleadoId"
+  Producto ||..o{ ConsumoEmpleadoItem : "productoId"
+  Empresa |o..o{ Auditoria : "empresaId"
+  Usuario |o..o{ Auditoria : "usuarioId"

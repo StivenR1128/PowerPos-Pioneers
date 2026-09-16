@@ -9,7 +9,7 @@ export class CajaController {
 
   @Post('abrir')
   abrir(@Body() body: any, @Request() req: any) {
-    return this.cajaService.abrirCaja(body, req.user.id, req.user.sucursalId || 1);
+    return this.cajaService.abrirCaja(body, req.user.id, req.user.sucursalId || 1, req.user.empresaId);
   }
 
   @Post(':id/cerrar')

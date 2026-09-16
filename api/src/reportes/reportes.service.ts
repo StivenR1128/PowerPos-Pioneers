@@ -138,4 +138,107 @@ export class ReportesService {
       };
     }).sort((a, b) => b.margenPorcentual - a.margenPorcentual);
   }
+
+  async generarReportePeriodo(empresaId: number, tipo: 'DIARIO' | 'MENSUAL' | 'ANUAL', fechaInput?: string) {
+    const fechaReferencia = fechaInput ? new Date(fechaInput) : new Date();
+    if (Number.isNaN(fechaReferencia.getTime())) {
+      throw new Error('Fecha inválida para el reporte');
+    }
+
+    const empresa = await this.prisma.empresa.findUnique({
+      where: { id: empresaId },
+      select: { id: true, nombre: true, email: true, telefono: true, direccion: true },
+    });
+
+    const inicio = tipo === 'DIARIO'
+      ? new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth(), fechaReferencia.getDate(), 0, 0, 0, 0)
+      : tipo === 'MENSUAL'
+        ? new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth(), 1, 0, 0, 0, 0)
+        : new Date(fechaReferencia.getFullYear(), 0, 1, 0, 0, 0, 0);
+
+    const fin = tipo === 'DIARIO'
+      ? new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth(), fechaReferencia.getDate(), 23, 59, 59, 999)
+      : tipo === 'MENSUAL'
+        ? new Date(fechaReferencia.getFullYear(), fechaReferencia.getMonth() + 1, 0, 23, 59, 59, 999)
+        : new Date(fechaReferencia.getFullYear(), 11, 31, 23, 59, 59, 999);
+
+    const pedidos = await this.prisma.pedido.findMany({
+      where: {
+        sucursal: { empresaId },
+        estado: { not: 'ANULADO' },
+        creadoEn: { gte: inicio, lte: fin },
+      },
+      include: {
+        usuario: { select: { nombre: true, email: true } },
+        cliente: { select: { nombre: true, documento: true, telefono: true } },
+        detalles: {
+          include: {
+            producto: { select: { nombre: true } },
+            adicionales: true,
+          },
+        },
+      },
+      orderBy: { creadoEn: 'asc' },
+    });
+
+    const totalVentas = pedidos.reduce((acc, pedido) => acc + Number(pedido.total), 0);
+    const cantidadPedidos = pedidos.length;
+    const promedioPedido = cantidadPedidos > 0 ? totalVentas / cantidadPedidos : 0;
+    const pagoPorMetodo = pedidos.reduce((acc, pedido) => {
+      const metodo = pedido.metodoPago;
+      acc[metodo] = (acc[metodo] || 0) + Number(pedido.total);
+      return acc;
+    }, {} as Record<string, number>);
+
+    const productosMasVendidos = pedidos
+      .flatMap((pedido) => pedido.detalles)
+      .reduce((acc, detalle) => {
+        const nombre = detalle.producto.nombre;
+        acc[nombre] = (acc[nombre] || 0) + detalle.cantidad;
+        return acc;
+      }, {} as Record<string, number>);
+
+    const topProductos = Object.entries(productosMasVendidos)
+      .map(([nombre, cantidad]) => ({ nombre, cantidad }))
+      .sort((a, b) => b.cantidad - a.cantidad)
+      .slice(0, 10);
+
+    const resumen = {
+      tipo,
+      empresa: empresa ? { id: empresa.id, nombre: empresa.nombre, email: empresa.email, telefono: empresa.telefono, direccion: empresa.direccion } : null,
+      periodo: {
+        inicio: inicio.toISOString(),
+        fin: fin.toISOString(),
+      },
+      totalVentas: Number(totalVentas.toFixed(2)),
+      cantidadPedidos,
+      promedioPedido: Number(promedioPedido.toFixed(2)),
+      pagoPorMetodo: Object.fromEntries(Object.entries(pagoPorMetodo).map(([key, value]) => [key, Number(value.toFixed(2))])),
+      topProductos,
+      pedidos: pedidos.map((pedido) => ({
+        id: pedido.id,
+        numero: pedido.numero,
+        estado: pedido.estado,
+        metodoPago: pedido.metodoPago,
+        total: Number(pedido.total),
+        cliente: pedido.cliente ? { nombre: pedido.cliente.nombre, documento: pedido.cliente.documento, telefono: pedido.cliente.telefono } : null,
+        usuario: pedido.usuario ? { nombre: pedido.usuario.nombre, email: pedido.usuario.email } : null,
+        creadoEn: pedido.creadoEn,
+        detalles: pedido.detalles.map((detalle) => ({
+          producto: detalle.producto.nombre,
+          cantidad: detalle.cantidad,
+          subtotal: Number(detalle.subtotal),
+          observacion: detalle.observacion,
+          exclusiones: detalle.exclusiones,
+          adicionales: detalle.adicionales.map((ad) => ({
+            nombre: ad.nombre,
+            cantidad: ad.cantidad,
+            subtotal: Number(ad.subtotal),
+          })),
+        })),
+      })),
+    };
+
+    return resumen;
+  }
 }

@@ -48,6 +48,7 @@ export class AuthService {
         permisos: usuario.empresa?.permisos,
         modoPreparacion: usuario.empresa?.modoPreparacion,
         facturacionElectronicaHabilitada: usuario.empresa?.facturacionElectronicaHabilitada,
+        consumoEmpleadosHabilitado: usuario.empresa?.consumoEmpleadosHabilitado,
       },
     };
   }

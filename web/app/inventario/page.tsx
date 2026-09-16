@@ -7,9 +7,11 @@ import Navbar from '@/components/Navbar';
 
 export default function InventarioPage() {
   const [ingredientes, setIngredientes] = useState<any[]>([]);
+  const [preparaciones, setPreparaciones] = useState<any[]>([]);
   const [modal, setModal] = useState<any>(null);
   const [modalNuevo, setModalNuevo] = useState(false);
   const [modalEditar, setModalEditar] = useState<any>(null);
+  const [modalPreparacion, setModalPreparacion] = useState(false);
   const [historialModal, setHistorialModal] = useState<any>(null);
   const [historial, setHistorial] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,6 +38,12 @@ export default function InventarioPage() {
     factorConversion: '',
     costoUnitario: '',
   });
+  const [formPreparacion, setFormPreparacion] = useState({
+    nombre: '',
+    descripcion: '',
+    unidad: 'porciones',
+    ingredientes: [] as any[],
+  });
   const [filtro, setFiltro] = useState('todos');
   const [verInactivos, setVerInactivos] = useState(false);
 
@@ -46,8 +54,12 @@ export default function InventarioPage() {
   }, [verInactivos]);
 
   const cargarDatos = async () => {
-    const { data } = await api.get(`/inventario?incluirInactivos=${verInactivos}`);
-    setIngredientes(data);
+    const [inventarioResp, preparacionesResp] = await Promise.all([
+      api.get(`/inventario?incluirInactivos=${verInactivos}`),
+      api.get('/preparaciones'),
+    ]);
+    setIngredientes(inventarioResp.data);
+    setPreparaciones(preparacionesResp.data);
   };
 
   const verHistorial = async (ing: any) => {
@@ -141,6 +153,40 @@ export default function InventarioPage() {
     }
   };
 
+  const crearPreparacion = async () => {
+    if (!formPreparacion.nombre) return;
+    setLoading(true);
+    try {
+      await api.post('/preparaciones', {
+        nombre: formPreparacion.nombre,
+        descripcion: formPreparacion.descripcion,
+        unidad: formPreparacion.unidad,
+        ingredientes: formPreparacion.ingredientes,
+      });
+      setModalPreparacion(false);
+      setFormPreparacion({ nombre: '', descripcion: '', unidad: 'porciones', ingredientes: [] });
+      cargarDatos();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const agregarIngredientePreparacion = () => {
+    setFormPreparacion((prev) => ({
+      ...prev,
+      ingredientes: [...prev.ingredientes, { ingredienteId: '', cantidad: '', unidad: 'gramos', observacion: '' }],
+    }));
+  };
+
+  const actualizarIngredientePreparacion = (index: number, campo: string, valor: string) => {
+    setFormPreparacion((prev) => ({
+      ...prev,
+      ingredientes: prev.ingredientes.map((ing, i) => i === index ? { ...ing, [campo]: valor } : ing),
+    }));
+  };
+
   const ingredientesFiltrados = ingredientes.filter(ing => {
     if (filtro === 'bajo') return ing.stockBajo;
     if (filtro === 'critico') return ing.stockCritico;
@@ -198,6 +244,13 @@ export default function InventarioPage() {
                     {verInactivos ? '👁 Viendo inactivos' : 'Ver inactivos'}
                   </button>
                 </div>
+                <button
+                  onClick={() => setModalPreparacion(true)}
+                  className="flex items-center gap-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 text-sm font-medium rounded-lg px-3 py-2 transition-colors"
+                >
+                  <Plus size={16} />
+                  Nueva preparación
+                </button>
                 <button
                   onClick={() => setModalNuevo(true)}
                   className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg px-3 py-2 transition-colors"
@@ -317,7 +370,142 @@ export default function InventarioPage() {
               </tbody>
             </table>
           </div>
+
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold">Preparaciones y lotes</h3>
+              <button
+                onClick={() => setModalPreparacion(true)}
+                className="bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 text-sm font-medium rounded-lg px-3 py-2 transition-colors"
+              >
+                Crear preparación
+              </button>
+            </div>
+            {preparaciones.length === 0 ? (
+              <p className="text-gray-500 text-sm">No hay preparaciones creadas aún.</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {preparaciones.map((prep) => (
+                  <div key={prep.id} className="bg-gray-800 rounded-xl p-3 border border-gray-700">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white font-medium">{prep.nombre}</span>
+                      <span className="text-xs text-blue-400">{prep.unidad}</span>
+                    </div>
+                    <div className="text-gray-400 text-xs mb-2">{prep.descripcion || 'Sin descripción'}</div>
+                    <div className="text-xs text-gray-500">
+                      Ingredientes: {prep.ingredientes?.length || 0} · Lotes: {prep.lotes?.length || 0} · Disponibles: {prep.porcionesDisponibles ?? 0}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Modal creación de preparación */}
+        {modalPreparacion && (
+          <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+            <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-lg border border-gray-800 max-h-[85vh] overflow-y-auto">
+              <h3 className="text-white font-bold text-lg mb-4">Nueva preparación</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Nombre</label>
+                  <input
+                    type="text"
+                    value={formPreparacion.nombre}
+                    onChange={(e) => setFormPreparacion({ ...formPreparacion, nombre: e.target.value })}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Descripción</label>
+                  <input
+                    type="text"
+                    value={formPreparacion.descripcion}
+                    onChange={(e) => setFormPreparacion({ ...formPreparacion, descripcion: e.target.value })}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1">Unidad de salida</label>
+                  <select
+                    value={formPreparacion.unidad}
+                    onChange={(e) => setFormPreparacion({ ...formPreparacion, unidad: e.target.value })}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+                  >
+                    <option value="porciones">Porciones</option>
+                    <option value="unidades">Unidades</option>
+                    <option value="gramos">Gramos</option>
+                  </select>
+                </div>
+                <div className="border-t border-gray-800 pt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-gray-400 text-sm">Ingredientes de la preparación</span>
+                    <button
+                      type="button"
+                      onClick={agregarIngredientePreparacion}
+                      className="text-orange-500 text-xs font-medium"
+                    >
+                      + Agregar
+                    </button>
+                  </div>
+
+                  {formPreparacion.ingredientes.length === 0 ? (
+                    <p className="text-gray-500 text-xs">Aún no hay ingredientes vinculados.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {formPreparacion.ingredientes.map((ing, index) => (
+                        <div key={index} className="bg-gray-800 rounded-lg p-2 space-y-2">
+                          <select
+                            value={ing.ingredienteId}
+                            onChange={(e) => actualizarIngredientePreparacion(index, 'ingredienteId', e.target.value)}
+                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1.5 text-white text-xs"
+                          >
+                            <option value="">Seleccione ingrediente</option>
+                            {ingredientes.map((opt) => (
+                              <option key={opt.id} value={opt.id}>{opt.nombre} ({opt.unidad})</option>
+                            ))}
+                          </select>
+                          <div className="grid grid-cols-2 gap-2">
+                            <input
+                              type="number"
+                              value={ing.cantidad}
+                              onChange={(e) => actualizarIngredientePreparacion(index, 'cantidad', e.target.value)}
+                              placeholder="Cantidad"
+                              className="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1.5 text-white text-xs"
+                            />
+                            <input
+                              type="text"
+                              value={ing.unidad}
+                              onChange={(e) => actualizarIngredientePreparacion(index, 'unidad', e.target.value)}
+                              placeholder="Unidad"
+                              className="bg-gray-700 border border-gray-600 rounded-lg px-2 py-1.5 text-white text-xs"
+                            />
+                          </div>
+                          <input
+                            type="text"
+                            value={ing.observacion}
+                            onChange={(e) => actualizarIngredientePreparacion(index, 'observacion', e.target.value)}
+                            placeholder="Observación opcional"
+                            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1.5 text-white text-xs"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setModalPreparacion(false)} className="flex-1 bg-gray-800 hover:bg-gray-700 text-white rounded-lg py-3 transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={crearPreparacion} disabled={loading || !formPreparacion.nombre} className="flex-1 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-500/40 text-white font-bold rounded-lg py-3 transition-colors">
+                  {loading ? 'Guardando...' : 'Guardar preparación'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Modal ajuste */}
         {modal && (

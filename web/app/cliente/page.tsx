@@ -11,16 +11,22 @@ interface ItemPantalla {
 
 interface EstadoPantalla {
   empresa: string;
+  logoUrl: string | null;
   items: ItemPantalla[];
   total: number;
   pedido: string | null;
+  clienteNombre: string | null;
+  mensajeLlamado: string | null;
 }
 
 const estadoInicial: EstadoPantalla = {
   empresa: 'PowerPOS',
+  logoUrl: null,
   items: [],
   total: 0,
   pedido: null,
+  clienteNombre: null,
+  mensajeLlamado: null,
 };
 
 export default function PantallaClientePage() {
@@ -32,19 +38,51 @@ export default function PantallaClientePage() {
     return () => canal.close();
   }, []);
 
+  useEffect(() => {
+    if (!estado.pedido || !estado.clienteNombre) return;
+
+    const texto = `Pedido ${estado.pedido} listo para ${estado.clienteNombre}.`;
+    const utterance = new SpeechSynthesisUtterance(texto);
+    utterance.lang = 'es-CO';
+    utterance.rate = 0.95;
+    utterance.pitch = 1.1;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  }, [estado.pedido, estado.clienteNombre]);
+
   return (
     <main className="min-h-screen bg-slate-950 text-white flex flex-col">
-      <header className="px-8 py-6 border-b border-slate-800 flex items-center justify-between">
-        <div>
-          <p className="text-orange-400 font-semibold tracking-widest uppercase text-sm">{estado.empresa}</p>
-          <h1 className="text-3xl font-black mt-1">Resumen de su pedido</h1>
+      <header className="px-8 py-6 border-b border-slate-800 flex items-center justify-between gap-6">
+        <div className="flex items-center gap-4 min-w-0">
+          {estado.logoUrl ? (
+            <img
+              src={estado.logoUrl}
+              alt={estado.empresa}
+              className="h-14 w-14 object-cover rounded-2xl border border-white/10 bg-white/5 shadow-lg shrink-0"
+            />
+          ) : (
+            <div className="h-14 w-14 rounded-2xl border border-orange-500/40 bg-orange-500/10 flex items-center justify-center text-xl font-black text-orange-300 shrink-0">
+              {estado.empresa?.slice(0, 2).toUpperCase() || 'P'}
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="text-orange-400 font-semibold tracking-widest uppercase text-sm truncate">{estado.empresa}</p>
+            <h1 className="text-3xl font-black mt-1">Resumen de su pedido</h1>
+          </div>
         </div>
-        <div className="text-right text-slate-400 text-sm">Revise los productos antes de pagar</div>
+        <div className="text-right text-slate-400 text-sm shrink-0">Revise los productos antes de pagar</div>
       </header>
 
       <section className="flex-1 p-8 grid grid-cols-[1fr_360px] gap-8">
         <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-8">
-          {estado.pedido && (
+          {estado.clienteNombre && estado.pedido && (
+            <div className="mb-6 rounded-2xl border border-orange-500/40 bg-orange-500/10 p-5 shadow-lg shadow-orange-900/20">
+              <div className="text-xs uppercase tracking-[0.2em] text-orange-300 mb-2">Pedido listo</div>
+              <div className="text-3xl font-black text-white">{estado.clienteNombre}</div>
+              <div className="mt-2 text-lg text-orange-100">Su pedido <span className="font-bold">{estado.pedido}</span> ya está listo.</div>
+            </div>
+          )}
+          {estado.pedido && !estado.clienteNombre && (
             <div className="mb-6 rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-5 py-4 text-emerald-300">
               Pedido <strong>{estado.pedido}</strong> registrado. Gracias por su compra.
             </div>

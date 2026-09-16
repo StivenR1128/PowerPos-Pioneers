@@ -1,0 +1,84 @@
+{
+  "fecha": "2026-09-16T02:44:22.556Z",
+  "alcance": "Servicios reales y PostgreSQL aislado. Sin AppModule, cron, SMTP, Twilio ni hardware. No prueba autorización HTTP ni concurrencia.",
+  "resultados": [
+    {
+      "id": "AT-01",
+      "nombre": "Login válido e inválido",
+      "estado": "APROBADO",
+      "detalle": "Resultado esperado comprobado."
+    },
+    {
+      "id": "AT-02",
+      "nombre": "Rechazo de venta sin caja",
+      "estado": "APROBADO",
+      "detalle": "Resultado esperado comprobado."
+    },
+    {
+      "id": "AT-03",
+      "nombre": "Apertura y rechazo de segunda caja",
+      "estado": "APROBADO",
+      "detalle": "Resultado esperado comprobado."
+    },
+    {
+      "id": "AT-04",
+      "nombre": "Venta con adicionales, exclusión, ingreso y puntos",
+      "estado": "APROBADO",
+      "detalle": "Subtotal 24000; total 23000; pan 98; cebolla 1000; queso 960; puntos 23; ingreso 23000; evento emitido."
+    },
+    {
+      "id": "AT-05",
+      "nombre": "Pedido ajeno no consultable por PedidosService",
+      "estado": "APROBADO",
+      "detalle": "Resultado esperado comprobado."
+    },
+    {
+      "id": "AT-06",
+      "nombre": "Cambio de estado y evento",
+      "estado": "APROBADO",
+      "detalle": "Resultado esperado comprobado."
+    },
+    {
+      "id": "AT-07",
+      "nombre": "Consumo interno sin ingreso financiero",
+      "estado": "APROBADO",
+      "detalle": "Sin ingreso; stock descontado; empresa sin habilitación rechazada. Rol HTTP no probado en esta invocación directa."
+    },
+    {
+      "id": "AT-08",
+      "nombre": "Entrada y conversión de inventario",
+      "estado": "APROBADO",
+      "detalle": "Resultado esperado comprobado."
+    },
+    {
+      "id": "AT-09",
+      "nombre": "Preparación y lote",
+      "estado": "APROBADO",
+      "detalle": "Lote creado con 10 porciones y consumo de insumo. No verifica descuento de porciones por venta."
+    },
+    {
+      "id": "AT-10",
+      "nombre": "Anulación sin reversión",
+      "estado": "BRECHA CONFIRMADA",
+      "detalle": "Cambió a ANULADO y mantuvo stock consumido, 23 puntos e ingreso. No cumple reversión integral."
+    },
+    {
+      "id": "AT-11",
+      "nombre": "Validación de cantidad cero",
+      "estado": "BRECHA CONFIRMADA",
+      "detalle": "Se aceptó pedido con cantidad cero. Falta rechazo de entrada inválida."
+    },
+    {
+      "id": "AT-12",
+      "nombre": "Stock global de inventario",
+      "estado": "BRECHA CONFIRMADA",
+      "detalle": "El servicio lista inventario sin parámetro de empresa; sus resultados incluyen los insumos del escenario A. No demuestra aislamiento por negocio."
+    },
+    {
+      "id": "AT-13",
+      "nombre": "Cierre con diferencia y evento",
+      "estado": "APROBADO",
+      "detalle": "Pedido de 23000 anulado excluido del cierre; pedido de cero no aporta; base 50000, final 52000, diferencia 2000."
+    }
+  ]
+}

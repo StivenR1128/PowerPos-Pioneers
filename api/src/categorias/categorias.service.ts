@@ -12,7 +12,12 @@ export class CategoriasService {
         descripcion: datos.descripcion,
         icono: datos.icono,
         color: datos.color,
+        parentId: datos.parentId ? Number(datos.parentId) : null,
         empresaId,
+      },
+      include: {
+        subcategorias: true,
+        categoriaPadre: true,
       },
     });
   }
@@ -20,8 +25,12 @@ export class CategoriasService {
   async listar(empresaId: number) {
     return this.prisma.categoria.findMany({
       where: { empresaId, activo: true },
-      include: { _count: { select: { productos: true } } },
-      orderBy: { nombre: 'asc' },
+      include: {
+        categoriaPadre: true,
+        subcategorias: { where: { activo: true }, orderBy: { nombre: 'asc' } },
+        _count: { select: { productos: true } },
+      },
+      orderBy: [{ parentId: 'asc' }, { nombre: 'asc' }],
     });
   }
 
@@ -29,7 +38,10 @@ export class CategoriasService {
     await this.verificarExistencia(id, empresaId);
     return this.prisma.categoria.update({
       where: { id },
-      data: datos,
+      data: {
+        ...datos,
+        parentId: datos.parentId !== undefined ? (datos.parentId ? Number(datos.parentId) : null) : undefined,
+      },
     });
   }
 

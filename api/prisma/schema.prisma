@@ -36,17 +36,21 @@ model Empresa {
   permisos      Json      @default("{}")
   modoPreparacion ModoPreparacion @default(KDS)
   facturacionElectronicaHabilitada Boolean @default(false)
+  consumoEmpleadosHabilitado Boolean @default(false)
   creadoEn      DateTime  @default(now())
   actualizadoEn DateTime  @updatedAt
 
-  usuarios    Usuario[]
-  sucursales  Sucursal[]
-  categorias  Categoria[]
-  productos   Producto[]
-  clientes    Cliente[]
-  movimientos MovimientoFinanciero[]
-  auditorias  Auditoria[]
-  adicionales Adicional[]
+  usuarios     Usuario[]
+  sucursales   Sucursal[]
+  categorias   Categoria[]
+  productos    Producto[]
+  clientes     Cliente[]
+  movimientos  MovimientoFinanciero[]
+  auditorias   Auditoria[]
+  adicionales  Adicional[]
+  preparaciones Preparacion[]
+  lotesPreparacion LotePreparacion[]
+  consumosEmpleados ConsumoEmpleado[]
 
   @@map("empresas")
 }
@@ -65,6 +69,7 @@ model Sucursal {
   pedidos     Pedido[]
   cajas       Caja[]
   movimientos MovimientoFinanciero[]
+  consumosEmpleados ConsumoEmpleado[]
 
   @@map("sucursales")
 }
@@ -102,7 +107,9 @@ model Usuario {
   eventos     EventoCaja[]
   movimientos MovimientoFinanciero[]
   movimientosInventario MovimientoInventario[]
+  lotesPreparacion LotePreparacion[]
   auditorias  Auditoria[]
+  consumosEmpleados ConsumoEmpleado[]
 
   @@map("usuarios")
 }
@@ -114,6 +121,7 @@ model Usuario {
 model Categoria {
   id          Int      @id @default(autoincrement())
   empresaId   Int
+  parentId    Int?
   nombre      String
   descripcion String?
   icono       String?
@@ -121,8 +129,10 @@ model Categoria {
   activo      Boolean  @default(true)
   creadoEn    DateTime @default(now())
 
-  empresa   Empresa    @relation(fields: [empresaId], references: [id])
-  productos Producto[]
+  empresa          Empresa     @relation(fields: [empresaId], references: [id])
+  categoriaPadre   Categoria?  @relation("CategoriaPadre", fields: [parentId], references: [id])
+  subcategorias    Categoria[] @relation("CategoriaPadre")
+  productos        Producto[]
 
   @@map("categorias")
 }
@@ -141,11 +151,13 @@ model Producto {
   creadoEn      DateTime @default(now())
   actualizadoEn DateTime @updatedAt
 
-  empresa        Empresa               @relation(fields: [empresaId], references: [id])
-  categoria      Categoria             @relation(fields: [categoriaId], references: [id])
-  ingredientes   ProductoIngrediente[]
-  adicionales    ProductoAdicional[]
-  detallesPedido DetallePedido[]
+  empresa             Empresa               @relation(fields: [empresaId], references: [id])
+  categoria           Categoria             @relation(fields: [categoriaId], references: [id])
+  ingredientes        ProductoIngrediente[]
+  adicionales         ProductoAdicional[]
+  preparaciones       ProductoPreparacion[]
+  detallesPedido      DetallePedido[]
+  consumoEmpleadoItems ConsumoEmpleadoItem[]
 
   @@map("productos")
 }
@@ -162,12 +174,15 @@ model Ingrediente {
   activo           Boolean  @default(true)
   creadoEn         DateTime @default(now())
 
-  productos    ProductoIngrediente[]
-  movimientos  MovimientoInventario[]
-  adicionales  Adicional[]
+  productos                 ProductoIngrediente[]
+  movimientos               MovimientoInventario[]
+  adicionales               Adicional[]
+  preparacionIngredientes   PreparacionIngrediente[]
+  lotePreparacionIngredientes LotePreparacionIngrediente[]
 
   @@map("ingredientes")
 }
+
 model MovimientoInventario {
   id              Int      @id @default(autoincrement())
   ingredienteId   Int
@@ -198,6 +213,91 @@ model ProductoIngrediente {
 
   @@unique([productoId, ingredienteId])
   @@map("producto_ingredientes")
+}
+
+model Preparacion {
+  id          Int      @id @default(autoincrement())
+  empresaId   Int
+  nombre      String
+  descripcion String?
+  unidad      String   @default("porciones")
+  activo      Boolean  @default(true)
+  creadoEn    DateTime @default(now())
+
+  empresa             Empresa                  @relation(fields: [empresaId], references: [id])
+  ingredientes        PreparacionIngrediente[]
+  lotes               LotePreparacion[]
+  productoPreparaciones ProductoPreparacion[]
+
+  @@map("preparaciones")
+}
+
+model PreparacionIngrediente {
+  id            Int      @id @default(autoincrement())
+  preparacionId Int
+  ingredienteId Int
+  cantidad      Decimal  @db.Decimal(10, 3)
+  unidad        String?
+  observacion   String?
+  creadoEn      DateTime @default(now())
+
+  preparacion Preparacion @relation(fields: [preparacionId], references: [id])
+  ingrediente Ingrediente @relation(fields: [ingredienteId], references: [id])
+
+  @@map("preparacion_ingredientes")
+}
+
+model LotePreparacion {
+  id                 Int      @id @default(autoincrement())
+  empresaId          Int
+  preparacionId      Int
+  usuarioId          Int
+  fecha              DateTime @default(now())
+  loteNumero         String?
+  cantidadProducida  Decimal  @db.Decimal(10, 3)
+  pesoTotal          Decimal? @db.Decimal(10, 3)
+  pesoPorBolsa       Decimal? @db.Decimal(10, 3)
+  porcionesPorBolsa  Decimal? @db.Decimal(10, 3)
+  porcionesTotales   Decimal? @db.Decimal(10, 3)
+  observacion        String?
+  creadoEn           DateTime @default(now())
+
+  empresa     Empresa                     @relation(fields: [empresaId], references: [id])
+  preparacion Preparacion                 @relation(fields: [preparacionId], references: [id])
+  usuario     Usuario                     @relation(fields: [usuarioId], references: [id])
+  ingredientes LotePreparacionIngrediente[]
+
+  @@map("lotes_preparacion")
+}
+
+model LotePreparacionIngrediente {
+  id            Int      @id @default(autoincrement())
+  loteId        Int
+  ingredienteId Int
+  cantidadUsada Decimal  @db.Decimal(10, 3)
+  unidad        String?
+  observacion   String?
+  creadoEn      DateTime @default(now())
+
+  lote        LotePreparacion @relation(fields: [loteId], references: [id])
+  ingrediente Ingrediente     @relation(fields: [ingredienteId], references: [id])
+
+  @@map("lote_preparacion_ingredientes")
+}
+
+model ProductoPreparacion {
+  id            Int      @id @default(autoincrement())
+  productoId    Int
+  preparacionId Int
+  cantidad      Decimal  @db.Decimal(10, 3) @default(1)
+  unidad        String   @default("porciones")
+  createdAt     DateTime @default(now())
+
+  producto    Producto    @relation(fields: [productoId], references: [id])
+  preparacion Preparacion @relation(fields: [preparacionId], references: [id])
+
+  @@unique([productoId, preparacionId])
+  @@map("producto_preparaciones")
 }
 
 // ==========================================
@@ -429,6 +529,40 @@ model MovimientoFinanciero {
   pedido   Pedido?  @relation(fields: [pedidoId], references: [id])
 
   @@map("movimientos_financieros")
+}
+
+// ==========================================
+// CONSUMO DE EMPLEADOS (no es venta, sí descuenta inventario)
+// ==========================================
+
+model ConsumoEmpleado {
+  id             Int      @id @default(autoincrement())
+  empresaId      Int
+  sucursalId     Int
+  usuarioId      Int
+  empleadoNombre String
+  observacion    String?
+  creadoEn       DateTime @default(now())
+
+  empresa  Empresa               @relation(fields: [empresaId], references: [id])
+  sucursal Sucursal              @relation(fields: [sucursalId], references: [id])
+  usuario  Usuario               @relation(fields: [usuarioId], references: [id])
+  items    ConsumoEmpleadoItem[]
+
+  @@map("consumos_empleados")
+}
+
+model ConsumoEmpleadoItem {
+  id                Int    @id @default(autoincrement())
+  consumoEmpleadoId Int
+  productoId        Int
+  cantidad          Int
+  precioReferencia  Decimal @db.Decimal(10, 2)
+
+  consumo  ConsumoEmpleado @relation(fields: [consumoEmpleadoId], references: [id])
+  producto Producto        @relation(fields: [productoId], references: [id])
+
+  @@map("consumo_empleado_items")
 }
 
 model Auditoria {

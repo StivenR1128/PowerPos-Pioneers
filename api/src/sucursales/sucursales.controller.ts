@@ -17,6 +17,11 @@ export class SucursalesController {
     return this.sucursalesService.listar(req.user.empresaId, incluirInactivas === 'true');
   }
 
+  @Patch(':id')
+  actualizar(@Param('id') id: string, @Body() body: any, @Request() req: any) {
+    return this.sucursalesService.actualizar(+id, req.user.empresaId, body);
+  }
+
   @Patch(':id/toggle-activo')
   toggleActivo(@Param('id') id: string, @Request() req: any) {
     return this.sucursalesService.toggleActivo(+id, req.user.empresaId);

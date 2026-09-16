@@ -19,6 +19,7 @@ interface Pedido {
   metodoPago: string;
   creadoEn: string;
   usuario: { nombre: string };
+  cliente?: { nombre: string };
   detalles: { cantidad: number; producto: { nombre: string } }[];
 }
 
@@ -33,6 +34,12 @@ export default function DashboardPage() {
   const [cajaAbierta, setCajaAbierta] = useState<any>(null);
   const [estadisticas, setEstadisticas] = useState<any>(null);
   const [resumenFinanciero, setResumenFinanciero] = useState<any>(null);
+  const [montoInicial, setMontoInicial] = useState('');
+  const [cajeroSeleccionado, setCajeroSeleccionado] = useState('');
+  const [cajeros, setCajeros] = useState<any[]>([]);
+  const [abrirCajaLoading, setAbrirCajaLoading] = useState(false);
+  const [cerrarCajaLoading, setCerrarCajaLoading] = useState(false);
+  const [montoFinal, setMontoFinal] = useState('');
 
   useEffect(() => {
     cargarDatos();
@@ -42,22 +49,70 @@ export default function DashboardPage() {
 
   const cargarDatos = async () => {
     try {
-      const [pedidosRes, alertasRes, cajaRes, statsRes, financieroRes] = await Promise.all([
+      const [pedidosRes, alertasRes, cajaRes, statsRes, financieroRes, usuariosRes] = await Promise.allSettled([
         api.get('/pedidos'),
         api.get('/caja/alertas'),
         api.get('/caja/abierta'),
         api.get('/pedidos/estadisticas'),
         api.get('/financiero/resumen'),
+        api.get('/usuarios'),
       ]);
-      setPedidos(pedidosRes.data);
-      setAlertas(alertasRes.data);
-      setCajaAbierta(cajaRes.data);
-      setEstadisticas(statsRes.data);
-      setResumenFinanciero(financieroRes.data);
+
+      if (pedidosRes.status === 'fulfilled') setPedidos(pedidosRes.value.data);
+      if (alertasRes.status === 'fulfilled') setAlertas(alertasRes.value.data);
+      if (cajaRes.status === 'fulfilled') setCajaAbierta(cajaRes.value.data);
+      if (statsRes.status === 'fulfilled') setEstadisticas(statsRes.value.data);
+      if (financieroRes.status === 'fulfilled') setResumenFinanciero(financieroRes.value.data);
+      if (usuariosRes.status === 'fulfilled') {
+        const lista = usuariosRes.value.data.filter((u: any) => u.rol === 'CAJERO' || u.rol === 'ADMIN_EMPRESA' || u.rol === 'GERENTE');
+        setCajeros(lista);
+        if (!cajeroSeleccionado && lista.length > 0) {
+          setCajeroSeleccionado(String(lista[0].id));
+        }
+      }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const abrirCaja = async () => {
+    if (!montoInicial || Number(montoInicial) < 0 || !cajeroSeleccionado) return;
+
+    setAbrirCajaLoading(true);
+    try {
+      await api.post('/caja/abrir', {
+        montoInicial: Number(montoInicial),
+        cajeroId: Number(cajeroSeleccionado),
+      });
+      setMontoInicial('');
+      setCajeroSeleccionado(cajeros[0]?.id ? String(cajeros[0].id) : '');
+      await cargarDatos();
+    } catch (e) {
+      console.error('Error al abrir caja:', e);
+    } finally {
+      setAbrirCajaLoading(false);
+    }
+  };
+
+  const cerrarCajaActual = async () => {
+    if (!cajaAbierta) return;
+
+    const montoEnCaja = montoFinal === '' ? Number(cajaAbierta.totalEsperado || 0) : Number(montoFinal);
+    if (Number.isNaN(montoEnCaja) || montoEnCaja < 0) return;
+
+    setCerrarCajaLoading(true);
+    try {
+      await api.post(`/caja/${cajaAbierta.id}/cerrar`, {
+        montoFinal: montoEnCaja,
+      });
+      setMontoFinal('');
+      await cargarDatos();
+    } catch (e) {
+      console.error('Error al cerrar caja:', e);
+    } finally {
+      setCerrarCajaLoading(false);
     }
   };
 
@@ -83,8 +138,45 @@ export default function DashboardPage() {
     ANULADO: 'Anulado',
   };
 
+  const emitirLlamadoCliente = async (pedido: Pedido | undefined, estado: string) => {
+    if (!pedido || !['LISTO', 'ENTREGADO'].includes(estado)) return;
+
+    const nombreCliente = pedido.cliente?.nombre || null;
+    const payload = {
+      empresa: usuario?.empresa || 'PowerPOS',
+      pedido: estado === 'LISTO' ? pedido.numero : null,
+      clienteNombre: estado === 'LISTO' ? nombreCliente : null,
+      mensaje: estado === 'LISTO' && nombreCliente ? `Pedido listo para ${nombreCliente}` : null,
+      logoUrl: null,
+      estado,
+    };
+
+    try {
+      const { data: empresa } = await api.get('/empresa');
+      payload.empresa = empresa?.nombre || payload.empresa;
+      payload.logoUrl = empresa?.logo || null;
+    } catch {
+      // mantiene los valores por defecto
+    }
+
+    try {
+      const canal = new BroadcastChannel('powerpos-llamado-cliente');
+      canal.postMessage(payload);
+      canal.close();
+    } catch {
+      // ignore
+    }
+
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('powerpos-llamado-cliente-event', JSON.stringify(payload));
+      window.dispatchEvent(new CustomEvent('powerpos-llamado-cliente-event', { detail: payload }));
+    }
+  };
+
   const actualizarEstado = async (id: number, estado: string) => {
+    const pedidoSeleccionado = pedidos.find((pedido) => pedido.id === id);
     await api.patch(`/pedidos/${id}/estado`, { estado });
+    await emitirLlamadoCliente(pedidoSeleccionado, estado);
     cargarDatos();
   };
 
@@ -332,11 +424,67 @@ export default function DashboardPage() {
                   <span className="text-gray-400">Total esperado</span>
                   <span className="text-white font-bold">${cajaAbierta.totalEsperado?.toLocaleString()}</span>
                 </div>
+                <div className="mt-4 border-t border-gray-800 pt-3 space-y-2">
+                  <div className="text-xs text-gray-400">Horario de turno</div>
+                  <div className="text-xs text-gray-300">Lun–Vie: 3:00 PM a 10:00 PM</div>
+                  <div className="text-xs text-gray-300">Sáb–Dom: 12:00 PM a 10:00 PM</div>
+                  <label className="block text-xs text-gray-400 mt-2">Monto contado al cerrar</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={montoFinal}
+                    onChange={(e) => setMontoFinal(e.target.value)}
+                    placeholder={String(cajaAbierta.totalEsperado ?? 0)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+                  />
+                  <button
+                    onClick={cerrarCajaActual}
+                    disabled={cerrarCajaLoading}
+                    className="w-full bg-red-500 hover:bg-red-600 disabled:bg-red-500/40 text-white font-medium rounded-lg px-3 py-2 text-sm transition-colors"
+                  >
+                    {cerrarCajaLoading ? 'Cerrando caja...' : 'Cerrar caja'}
+                  </button>
+                </div>
               </div>
             ) : (
-              <div className="text-center py-4">
+              <div className="space-y-3 py-2">
                 <p className="text-red-400 font-medium">● Caja cerrada</p>
-                <p className="text-gray-500 text-sm mt-1">No hay caja abierta en este momento</p>
+                <p className="text-gray-500 text-sm">No hay caja abierta en este momento.</p>
+                <div className="space-y-2">
+                  <label className="block text-xs text-gray-400">Cajero encargado</label>
+                  <select
+                    value={cajeroSeleccionado}
+                    onChange={(e) => setCajeroSeleccionado(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+                  >
+                    {cajeros.length === 0 ? (
+                      <option value="">No hay cajeros disponibles</option>
+                    ) : (
+                      cajeros.map((cajero) => (
+                        <option key={cajero.id} value={String(cajero.id)}>
+                          {cajero.nombre} ({cajero.rol})
+                        </option>
+                      ))
+                    )}
+                  </select>
+
+                  <label className="block text-xs text-gray-400">Base de caja diaria</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={montoInicial}
+                    onChange={(e) => setMontoInicial(e.target.value)}
+                    placeholder="Ej: 500000"
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+                  />
+                  <button
+                    onClick={abrirCaja}
+                    disabled={abrirCajaLoading || !montoInicial || Number(montoInicial) < 0 || !cajeroSeleccionado}
+                    className="w-full bg-orange-500 hover:bg-orange-600 disabled:bg-orange-500/40 text-white font-medium rounded-lg px-3 py-2 text-sm transition-colors"
+                  >
+                    {abrirCajaLoading ? 'Abriendo caja...' : 'Abrir caja'}
+                  </button>
+                </div>
               </div>
             )}
           </div>

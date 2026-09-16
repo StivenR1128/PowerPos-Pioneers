@@ -6,7 +6,7 @@ export class ProductosService {
   constructor(private prisma: PrismaService) {}
 
   async crear(datos: any, empresaId: number) {
-    const { ingredientes, adicionalIds, ...productoData } = datos;
+    const { ingredientes, adicionalIds, preparacionIds, ...productoData } = datos;
 
     return this.prisma.producto.create({
       data: {
@@ -38,6 +38,16 @@ export class ProductosService {
                 })),
               }
             : undefined,
+        preparaciones:
+          Array.isArray(preparacionIds) && preparacionIds.length > 0
+            ? {
+                create: preparacionIds.map((preparacionId: number) => ({
+                  preparacionId,
+                  cantidad: 1,
+                  unidad: 'porciones',
+                })),
+              }
+            : undefined,
       },
       include: {
         categoria: true,
@@ -45,6 +55,7 @@ export class ProductosService {
         adicionales: {
           include: { adicional: { include: { ingrediente: true } } },
         },
+        preparaciones: { include: { preparacion: true } },
       },
     });
   }
@@ -62,6 +73,7 @@ export class ProductosService {
         adicionales: {
           include: { adicional: { include: { ingrediente: true } } },
         },
+        preparaciones: { include: { preparacion: true } },
       },
       orderBy: { nombre: 'asc' },
     });
@@ -76,6 +88,7 @@ export class ProductosService {
         adicionales: {
           include: { adicional: { include: { ingrediente: true } } },
         },
+        preparaciones: { include: { preparacion: true } },
       },
     });
     if (!producto) throw new NotFoundException('Producto no encontrado');
@@ -84,9 +97,8 @@ export class ProductosService {
 
   async actualizar(id: number, datos: any, empresaId: number) {
     await this.obtener(id, empresaId);
-    const { ingredientes, adicionalIds, ...productoData } = datos;
+    const { ingredientes, adicionalIds, preparacionIds, ...productoData } = datos;
 
-    // Si viene la lista de adicionales, reemplazamos las asociaciones del producto
     if (Array.isArray(adicionalIds)) {
       await this.prisma.productoAdicional.deleteMany({
         where: { productoId: id },
@@ -102,7 +114,21 @@ export class ProductosService {
       }
     }
 
-    // Si vienen ingredientes, reemplazamos toda la receta del producto
+    if (Array.isArray(preparacionIds)) {
+      await this.prisma.productoPreparacion.deleteMany({ where: { productoId: id } });
+      if (preparacionIds.length > 0) {
+        await this.prisma.productoPreparacion.createMany({
+          data: preparacionIds.map((preparacionId: number) => ({
+            productoId: id,
+            preparacionId,
+            cantidad: 1,
+            unidad: 'porciones',
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
     if (ingredientes) {
       await this.prisma.productoIngrediente.deleteMany({
         where: { productoId: id },
@@ -150,6 +176,7 @@ export class ProductosService {
         adicionales: {
           include: { adicional: { include: { ingrediente: true } } },
         },
+        preparaciones: { include: { preparacion: true } },
       },
     });
   }

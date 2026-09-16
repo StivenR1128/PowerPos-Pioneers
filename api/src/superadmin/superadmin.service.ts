@@ -9,13 +9,42 @@ export class SuperadminService {
   constructor(private readonly prisma: PrismaService, private readonly auditoria: AuditoriaService) {}
 
   async crearEmpresa(datos: any, usuarioId?: number) {
-    const { empresa, admin, plan = 'BASICO', permisos = {} } = datos;
-    const [empresaExistente, usuarioExistente] = await Promise.all([
-      this.prisma.empresa.findUnique({ where: { nit: empresa.nit } }),
-      this.prisma.usuario.findUnique({ where: { email: admin.email } }),
-    ]);
+    const { empresa, admin, administradores, plan = 'BASICO', permisos = {} } = datos;
+    const listaAdministradores = Array.isArray(administradores) && administradores.length > 0
+      ? administradores
+      : admin
+        ? [admin]
+        : [];
+
+    if (listaAdministradores.length === 0) {
+      throw new ConflictException('Debe indicar al menos 1 administrador para la empresa');
+    }
+
+    if (listaAdministradores.length > 3) {
+      throw new ConflictException('La empresa puede tener máximo 3 administradores');
+    }
+
+    const empresaExistente = await this.prisma.empresa.findUnique({ where: { nit: empresa.nit } });
     if (empresaExistente) throw new ConflictException('Ya existe una empresa con ese NIT');
-    if (usuarioExistente) throw new ConflictException('Ya existe un usuario con ese email');
+
+    const emailsUsados = new Set<string>();
+    for (const administrador of listaAdministradores) {
+      if (!administrador?.nombre || !administrador?.email || !administrador?.password) {
+        throw new ConflictException('Cada administrador debe tener nombre, email y contraseña');
+      }
+
+      const emailNormalizado = administrador.email.trim().toLowerCase();
+      if (emailsUsados.has(emailNormalizado)) {
+        throw new ConflictException(`El email ${emailNormalizado} está repetido en la lista de administradores`);
+      }
+
+      const usuarioExistente = await this.prisma.usuario.findUnique({ where: { email: emailNormalizado } });
+      if (usuarioExistente) {
+        throw new ConflictException(`Ya existe un usuario con el email ${emailNormalizado}`);
+      }
+
+      emailsUsados.add(emailNormalizado);
+    }
 
     const creada = await this.prisma.empresa.create({
       data: {
@@ -31,21 +60,49 @@ export class SuperadminService {
       include: { sucursales: true },
     });
 
-    const password = await bcrypt.hash(admin.password, 10);
-    await this.prisma.usuario.create({
-      data: {
-        nombre: admin.nombre,
-        email: admin.email,
-        password,
-        rol: 'ADMIN_EMPRESA',
-        empresaId: creada.id,
-        sucursalId: creada.sucursales[0].id,
-        permisos: { global: true },
-      },
+    const administradoresCreados = [] as Array<{ id: number; nombre: string; email: string; rol: string }>;
+
+    for (const administrador of listaAdministradores) {
+      const password = await bcrypt.hash(administrador.password, 10);
+      const usuarioCreado = await this.prisma.usuario.create({
+        data: {
+          nombre: administrador.nombre,
+          email: administrador.email.trim().toLowerCase(),
+          password,
+          rol: 'ADMIN_EMPRESA',
+          empresaId: creada.id,
+          sucursalId: creada.sucursales[0].id,
+          permisos: { global: true },
+        },
+      });
+
+      administradoresCreados.push({
+        id: usuarioCreado.id,
+        nombre: usuarioCreado.nombre,
+        email: usuarioCreado.email,
+        rol: usuarioCreado.rol,
+      });
+    }
+
+    await this.auditoria.registrar({
+      accion: 'CREAR',
+      entidad: 'EMPRESA',
+      entidadId: creada.id,
+      usuarioId,
+      detalle: { plan, administradores: administradoresCreados.map((admin) => ({ nombre: admin.nombre, email: admin.email })) },
     });
 
-    await this.auditoria.registrar({ accion: 'CREAR', entidad: 'EMPRESA', entidadId: creada.id, usuarioId, detalle: { plan, adminEmail: admin.email } });
-    return { id: creada.id, nombre: creada.nombre, nit: creada.nit, plan: creada.plan, adminEmail: admin.email };
+    return {
+      id: creada.id,
+      nombre: creada.nombre,
+      nit: creada.nit,
+      plan: creada.plan,
+      administradores: administradoresCreados,
+      sucursal: {
+        id: creada.sucursales[0].id,
+        nombre: creada.sucursales[0].nombre,
+      },
+    };
   }
 
   async resumen() {
@@ -92,6 +149,7 @@ export class SuperadminService {
       permisos?: Record<string, boolean>;
       modoPreparacion?: 'KDS' | 'COMANDAS';
       facturacionElectronicaHabilitada?: boolean;
+      consumoEmpleadosHabilitado?: boolean;
     },
     usuarioId?: number,
   ) {
@@ -105,8 +163,9 @@ export class SuperadminService {
         ...(datos.permisos ? { permisos: datos.permisos } : {}),
         ...(datos.modoPreparacion ? { modoPreparacion: datos.modoPreparacion } : {}),
         ...(datos.facturacionElectronicaHabilitada !== undefined ? { facturacionElectronicaHabilitada: datos.facturacionElectronicaHabilitada } : {}),
+        ...(datos.consumoEmpleadosHabilitado !== undefined ? { consumoEmpleadosHabilitado: datos.consumoEmpleadosHabilitado } : {}),
       },
-      select: { id: true, nombre: true, plan: true, permisos: true, modoPreparacion: true, facturacionElectronicaHabilitada: true, activo: true },
+      select: { id: true, nombre: true, plan: true, permisos: true, modoPreparacion: true, facturacionElectronicaHabilitada: true, consumoEmpleadosHabilitado: true, activo: true },
     });
     await this.auditoria.registrar({ accion: 'CONFIGURAR', entidad: 'EMPRESA', entidadId: id, usuarioId, detalle: datos });
     return actualizada;

@@ -1,0 +1,33 @@
+erDiagram
+  Producto {
+    Int id PK
+    Int empresaId FK
+    Int categoriaId FK
+    String nombre
+  }
+  Ingrediente {
+    Int id PK
+    String nombre
+    Decimal stock
+  }
+  Preparacion {
+    Int id PK
+    Int empresaId FK
+    String nombre
+  }
+  PreparacionIngrediente {
+    Int id PK
+    Int preparacionId FK
+    Int ingredienteId FK
+    Decimal cantidad
+  }
+  ProductoPreparacion {
+    Int id PK
+    Int productoId FK
+    Int preparacionId FK
+    Decimal cantidad
+  }
+  Preparacion ||..o{ PreparacionIngrediente : "preparacionId"
+  Ingrediente ||..o{ PreparacionIngrediente : "ingredienteId"
+  Producto ||..o{ ProductoPreparacion : "productoId"
+  Preparacion ||..o{ ProductoPreparacion : "preparacionId"

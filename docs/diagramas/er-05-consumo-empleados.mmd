@@ -1,0 +1,45 @@
+erDiagram
+  Empresa {
+    Int id PK
+    String nombre
+    String nit UK
+  }
+  Sucursal {
+    Int id PK
+    Int empresaId FK
+    String nombre
+  }
+  Usuario {
+    Int id PK
+    Int empresaId FK "nullable"
+    Int sucursalId FK "nullable"
+    String nombre
+    String email UK
+  }
+  Producto {
+    Int id PK
+    Int empresaId FK
+    Int categoriaId FK
+    String nombre
+  }
+  ConsumoEmpleado {
+    Int id PK
+    Int empresaId FK
+    Int sucursalId FK
+    Int usuarioId FK
+  }
+  ConsumoEmpleadoItem {
+    Int id PK
+    Int consumoEmpleadoId FK
+    Int productoId FK
+    Int cantidad
+  }
+  Empresa ||..o{ Sucursal : "empresaId"
+  Empresa |o..o{ Usuario : "empresaId"
+  Sucursal |o..o{ Usuario : "sucursalId"
+  Empresa ||..o{ Producto : "empresaId"
+  Empresa ||..o{ ConsumoEmpleado : "empresaId"
+  Sucursal ||..o{ ConsumoEmpleado : "sucursalId"
+  Usuario ||..o{ ConsumoEmpleado : "usuarioId"
+  ConsumoEmpleado ||..o{ ConsumoEmpleadoItem : "consumoEmpleadoId"
+  Producto ||..o{ ConsumoEmpleadoItem : "productoId"

@@ -1,0 +1,51 @@
+erDiagram
+  Empresa {
+    Int id PK
+    String nombre
+    String nit UK
+  }
+  Categoria {
+    Int id PK
+    Int empresaId FK
+    Int parentId FK "nullable"
+    String nombre
+  }
+  Producto {
+    Int id PK
+    Int empresaId FK
+    Int categoriaId FK
+    String nombre
+  }
+  Ingrediente {
+    Int id PK
+    String nombre
+    Decimal stock
+  }
+  ProductoIngrediente {
+    Int id PK
+    Int productoId FK
+    Int ingredienteId FK
+    Decimal cantidad
+  }
+  Adicional {
+    Int id PK
+    Int empresaId FK
+    String nombre
+    Int ingredienteId FK "nullable"
+    Decimal cantidad "nullable"
+  }
+  ProductoAdicional {
+    Int id PK
+    Int productoId FK
+    Int adicionalId FK
+  }
+  Empresa ||..o{ Categoria : "empresaId"
+  Categoria |o..o{ Categoria : "parentId"
+  Empresa ||..o{ Producto : "empresaId"
+  Categoria ||..o{ Producto : "categoriaId"
+  Producto ||..o{ ProductoIngrediente : "productoId"
+  Ingrediente ||..o{ ProductoIngrediente : "ingredienteId"
+  Empresa ||..o{ Adicional : "empresaId"
+  Ingrediente |o..o{ Adicional : "ingredienteId"
+  Producto ||..o{ ProductoAdicional : "productoId"
+  Adicional ||..o{ ProductoAdicional : "adicionalId"
