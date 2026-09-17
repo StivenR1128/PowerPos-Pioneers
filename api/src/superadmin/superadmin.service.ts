@@ -95,6 +95,7 @@ export class SuperadminService {
     return {
       id: creada.id,
       nombre: creada.nombre,
+      tiendaRuta: `/tienda/${creada.tiendaSlug}`,
       nit: creada.nit,
       plan: creada.plan,
       administradores: administradoresCreados,

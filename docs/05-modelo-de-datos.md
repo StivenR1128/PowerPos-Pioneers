@@ -2,7 +2,7 @@
 
 Fuente: [esquema Prisma](../api/prisma/schema.prisma). Modelo físico del código actual, no un diseño idealizado.
 
-Hay **25 entidades** y **49 relaciones con FK**. [Diagrama completo editable](diagramas/er-completo.mmd). Se muestran PK, FK, unicidad individual y algunos campos descriptivos; el [diccionario](06-diccionario-de-datos.md) incluye todos los campos y las restricciones compuestas.
+Hay **26 entidades** y **53 relaciones con FK**. [Diagrama completo editable](diagramas/er-completo.mmd). Se muestran PK, FK, unicidad individual y algunos campos descriptivos; el [diccionario](06-diccionario-de-datos.md) incluye todos los campos y las restricciones compuestas.
 
 ## Lectura de cardinalidades
 
@@ -18,6 +18,7 @@ erDiagram
     Int id PK
     String nombre
     String nit UK
+    String tiendaSlug UK
   }
   Sucursal {
     Int id PK
@@ -53,6 +54,7 @@ erDiagram
     Int id PK
     String nombre
     String nit UK
+    String tiendaSlug UK
   }
   Categoria {
     Int id PK
@@ -205,6 +207,7 @@ erDiagram
     Int id PK
     String nombre
     String nit UK
+    String tiendaSlug UK
   }
   Sucursal {
     Int id PK
@@ -406,6 +409,10 @@ erDiagram
 | ConsumoEmpleadoItem | productoId | Producto.id | 1 | 0..N |
 | Auditoria | empresaId | Empresa.id | 0..1 | 0..N |
 | Auditoria | usuarioId | Usuario.id | 0..1 | 0..N |
+| PedidoWeb | empresaId | Empresa.id | 1 | 0..N |
+| PedidoWeb | pedidoId | Pedido.id | 0..1 | 0..N |
+| PedidoWeb | sucursalId | Sucursal.id | 1 | 0..N |
+| PedidoWeb | repartidorId | Usuario.id | 0..1 | 0..N |
 
 ## Decisiones y limitaciones del modelo
 

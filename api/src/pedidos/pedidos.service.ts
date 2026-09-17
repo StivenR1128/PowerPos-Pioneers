@@ -1,3 +1,6 @@
+import { randomUUID } from 'crypto';
+import { Prisma } from '@prisma/client';
+import { calcularPuntos, puntosConfig, monto } from '../tienda/reglas';
 import {
   Injectable,
   NotFoundException,
@@ -16,11 +19,24 @@ export class PedidosService {
   ) {}
 
   async crearPedido(datos: any, usuarioId: number, empresaId: number) {
+    const pedido = await this.prisma.$transaction(tx => this.crearEnTransaccion(datos, usuarioId, empresaId, tx), { timeout: 15000 });
+    this.eventos.emitir(empresaId, { tipo: 'CREADO', pedidoId: pedido.id, estado: pedido.estado });
+    // La venta ya fue confirmada: una falla de un canal externo no debe inducir a repetirla.
+    void this.notificaciones.enviarAlerta({ tipo: 'VENTA REGISTRADA', mensaje: `Venta ${pedido.numero}. Total: $${Number(pedido.total).toLocaleString('es-CO')}`, empresa: 'PowerPOS', sucursal: String(pedido.sucursalId), empresaId }).catch(() => undefined);
+    return pedido;
+  }
+
+  async crearEnTransaccion(datos: any, usuarioId: number, empresaId: number, db: Prisma.TransactionClient, costoDomicilio = 0) {
     const { items, metodoPago, clienteId, observacion, sucursalId, cajaId } =
       datos;
 
-    const cajaAbierta = await this.prisma.caja.findFirst({
-      where: { sucursalId, estado: 'ABIERTA' },
+    if (!Array.isArray(items) || items.length < 1 || items.length > 100 || items.some(i => !Number.isInteger(i.cantidad) || i.cantidad < 1 || i.cantidad > 999 || !Number.isInteger(i.productoId))) throw new BadRequestException('Productos o cantidades no válidos');
+    if (metodoPago && !['EFECTIVO','TARJETA','TRANSFERENCIA','NEQUI','DAVIPLATA'].includes(metodoPago)) throw new BadRequestException('Medio de pago no válido');
+    const empresa = await db.empresa.findFirst({ where: { id: empresaId, activo: true } });
+    if (!empresa) throw new NotFoundException('Empresa no disponible');
+    const reglas = puntosConfig(empresa.fidelizacionConfig);
+    const cajaAbierta = await db.caja.findFirst({
+      where: { sucursalId, sucursal: { empresaId }, estado: 'ABIERTA' },
       include: { usuario: { select: { id: true, nombre: true } } },
     });
 
@@ -33,7 +49,7 @@ export class PedidosService {
       throw new BadRequestException('La caja seleccionada no está abierta en esta sucursal');
     }
 
-    const usuarioVendedor = await this.prisma.usuario.findUnique({
+    const usuarioVendedor = await db.usuario.findUnique({
       where: { id: usuarioId },
       select: { nombre: true, rol: true },
     });
@@ -43,20 +59,20 @@ export class PedidosService {
       throw new BadRequestException(`La caja abierta está asignada a ${cajaAbierta.usuario?.nombre || 'el cajero seleccionado'}. Solo ese usuario o un administrador puede registrar ventas.`);
     }
 
-    const sucursal = await this.prisma.sucursal.findFirst({
+    const sucursal = await db.sucursal.findFirst({
       where: { id: sucursalId, empresaId, activo: true },
     });
     if (!sucursal)
       throw new NotFoundException('Sucursal no encontrada para esta empresa');
     if (clienteId) {
-      const cliente = await this.prisma.cliente.findFirst({
+      const cliente = await db.cliente.findFirst({
         where: { id: clienteId, empresaId, activo: true },
       });
       if (!cliente)
         throw new NotFoundException('Cliente no encontrado para esta empresa');
     }
     if (cajaId) {
-      const caja = await this.prisma.caja.findFirst({
+      const caja = await db.caja.findFirst({
         where: { id: cajaId, sucursalId, usuarioId },
       });
       if (!caja)
@@ -67,7 +83,7 @@ export class PedidosService {
     const itemsValidados = [];
 
     for (const item of items) {
-      const producto = await this.prisma.producto.findFirst({
+      const producto = await db.producto.findFirst({
         where: { id: item.productoId, empresaId, activo: true },
         include: {
           ingredientes: { include: { ingrediente: true } },
@@ -102,7 +118,7 @@ export class PedidosService {
         Array.isArray(item.adicionales) &&
         item.adicionales.length > 0
       ) {
-        const catalogo = await this.prisma.adicional.findMany({
+        const catalogo = await db.adicional.findMany({
           where: { empresaId, activo: true, disponible: true },
           include: { ingrediente: true },
         });
@@ -148,14 +164,27 @@ export class PedidosService {
       });
     }
 
-    const descuento = datos.descuento || 0;
-    const total = subtotal - descuento;
+    const descuentoManual = monto(datos.descuento ?? 0, 'Descuento', 0, subtotal);
+    const puntosCanjeados = datos.puntosCanjeados ?? 0;
+    if (!Number.isInteger(puntosCanjeados) || puntosCanjeados < 0) throw new BadRequestException('Puntos no válidos');
+    if (puntosCanjeados && (!clienteId || !reglas.habilitado || reglas.valorPunto <= 0)) throw new BadRequestException('El canje no está habilitado');
+    const descuento = Math.round((descuentoManual + puntosCanjeados * reglas.valorPunto) * 100) / 100;
+    if (descuento > subtotal) throw new BadRequestException('El canje excede el valor de los productos');
+    if (puntosCanjeados) {
+      const canje = await db.cliente.updateMany({ where: { id: clienteId, empresaId, activo: true, puntos: { gte: puntosCanjeados } }, data: { puntos: { decrement: puntosCanjeados } } });
+      if (!canje.count) throw new BadRequestException('Saldo de puntos insuficiente');
+    }
+    const puntosGanados = clienteId ? calcularPuntos(itemsValidados, subtotal, descuento, reglas) : 0;
+    const total = subtotal - descuento + costoDomicilio;
+    monto(Math.round(total * 100) / 100, 'Total', 0, 99999999.99);
+    if (puntosGanados > 2147483647) throw new BadRequestException('Revise la regla de acumulación: genera demasiados puntos');
 
     const numero = await this.generarNumeroPedido(sucursalId);
 
-    const pedido = await this.prisma.pedido.create({
+    const pedido = await db.pedido.create({
       data: {
         numero,
+        puntosGanados, puntosCanjeados, valorPuntoAplicado: reglas.valorPunto, costoDomicilio,
         sucursalId,
         usuarioId,
         clienteId: clienteId || null,
@@ -203,10 +232,10 @@ export class PedidosService {
     });
 
     // Descontar inventario respetando exclusiones
-    await this.descontarInventario(itemsValidados);
+    await this.descontarInventario(itemsValidados, db);
 
     // Registrar ingreso automático por venta
-    await this.prisma.movimientoFinanciero.create({
+    await db.movimientoFinanciero.create({
       data: {
         empresaId,
         sucursalId,
@@ -221,30 +250,14 @@ export class PedidosService {
 
     // Sumar puntos de fidelización si el pedido tiene cliente asociado
     if (clienteId) {
-      const puntosGanados = Math.floor(total / 1000); // 1 punto por cada $1.000 gastado
+
       if (puntosGanados > 0) {
-        await this.prisma.cliente.update({
+        await db.cliente.update({
           where: { id: clienteId },
           data: { puntos: { increment: puntosGanados } },
         });
       }
     }
-
-    this.eventos.emitir(empresaId, {
-      tipo: 'CREADO',
-      pedidoId: pedido.id,
-      estado: pedido.estado,
-    });
-
-    const mensajeVenta = `💰 Venta registrada por ${usuarioVendedor?.nombre || 'cajero'} (${usuarioVendedor?.rol || 'CAJERO'}) en ${sucursal.nombre}. Pedido #${pedido.numero}. Total: $${Number(total).toLocaleString()}.`;
-
-    await this.notificaciones.enviarAlerta({
-      tipo: 'VENTA REGISTRADA',
-      mensaje: mensajeVenta,
-      empresa: sucursal?.nombre || 'PowerPOS',
-      sucursal: sucursal.nombre,
-      empresaId,
-    });
 
     return pedido;
   }
@@ -263,7 +276,7 @@ export class PedidosService {
     return Number(cantidadReceta) * factorConversion;
   }
 
-  private async descontarInventario(items: any[]) {
+  private async descontarInventario(items: any[], db: Prisma.TransactionClient) {
     for (const item of items) {
       for (const productoIngrediente of item.producto.ingredientes) {
         const excluido = item.exclusiones.includes(
@@ -277,7 +290,7 @@ export class PedidosService {
               Number(productoIngrediente.cantidad),
             ) * item.cantidad;
 
-          await this.prisma.ingrediente.update({
+          await db.ingrediente.update({
             where: { id: productoIngrediente.ingredienteId },
             data: {
               stock: {
@@ -297,7 +310,7 @@ export class PedidosService {
             adicionalValidado.cantidad *
             item.cantidad;
 
-          await this.prisma.ingrediente.update({
+          await db.ingrediente.update({
             where: { id: adicional.ingredienteId },
             data: { stock: { decrement: cantidadADescontar } },
           });
@@ -349,10 +362,15 @@ export class PedidosService {
   }
 
   async actualizarEstado(id: number, estado: string, empresaId: number) {
+    if (!['PENDIENTE','EN_COCINA','LISTO','ENTREGADO','ANULADO'].includes(estado)) throw new BadRequestException('Estado no válido');
     const pedido = await this.prisma.pedido.findFirst({
       where: { id, sucursal: { empresaId } },
     });
     if (!pedido) throw new NotFoundException('Pedido no encontrado');
+    if (pedido.estado === 'ANULADO') throw new BadRequestException('Un pedido anulado no puede reabrirse');
+    const web = await this.prisma.pedidoWeb.findUnique({ where: { pedidoId: id } });
+    if (web && (['ENTREGADO','ANULADO'].includes(estado) || ['EN_CAMINO','ENTREGADO'].includes(web.estado))) throw new BadRequestException('Gestione este pedido desde Domicilios. Las ventas aceptadas requieren conciliación antes de cancelar.');
+    if (estado === 'ANULADO' && (pedido.puntosGanados || pedido.puntosCanjeados)) throw new BadRequestException('Esta venta tiene movimientos de puntos. Requiere conciliación antes de anular para no alterar saldos sin respaldo.');
     const actualizado = await this.prisma.pedido.update({
       where: { id },
       data: { estado: estado as any },
@@ -506,18 +524,5 @@ export class PedidosService {
     };
   }
 
-  private async generarNumeroPedido(sucursalId: number): Promise<string> {
-    const fecha = new Date();
-    const año = fecha.getFullYear();
-    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
-    const dia = String(fecha.getDate()).padStart(2, '0');
-
-    const ultimoPedido = await this.prisma.pedido.findFirst({
-      where: { sucursalId },
-      orderBy: { id: 'desc' },
-    });
-
-    const consecutivo = ultimoPedido ? ultimoPedido.id + 1 : 1;
-    return `PED-${año}${mes}${dia}-${String(consecutivo).padStart(4, '0')}`;
-  }
+  private async generarNumeroPedido(sucursalId: number): Promise<string> { return 'PED-' + sucursalId + '-' + randomUUID(); }
 }

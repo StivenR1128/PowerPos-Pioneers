@@ -37,6 +37,10 @@ model Empresa {
   modoPreparacion ModoPreparacion @default(KDS)
   facturacionElectronicaHabilitada Boolean @default(false)
   consumoEmpleadosHabilitado Boolean @default(false)
+  tiendaSlug String @unique @default(uuid())
+  tiendaConfig Json @default("{}")
+  fidelizacionConfig Json @default("{}")
+  pedidosWeb PedidoWeb[]
   creadoEn      DateTime  @default(now())
   actualizadoEn DateTime  @updatedAt
 
@@ -56,6 +60,7 @@ model Empresa {
 }
 
 model Sucursal {
+  pedidosWeb PedidoWeb[]
   id        Int      @id @default(autoincrement())
   empresaId Int
   nombre    String
@@ -88,6 +93,7 @@ enum RolUsuario {
 }
 
 model Usuario {
+  entregasWeb PedidoWeb[]
   id            Int        @id @default(autoincrement())
   empresaId     Int?
   sucursalId    Int?
@@ -391,6 +397,11 @@ model Pedido {
   observacion   String?
   creadoEn      DateTime     @default(now())
   actualizadoEn DateTime     @updatedAt
+  puntosGanados Int @default(0)
+  puntosCanjeados Int @default(0)
+  valorPuntoAplicado Decimal @db.Decimal(10, 2) @default(0)
+  costoDomicilio Decimal @db.Decimal(10, 2) @default(0)
+  pedidoWeb PedidoWeb?
 
   sucursal    Sucursal               @relation(fields: [sucursalId], references: [id])
   usuario     Usuario                @relation(fields: [usuarioId], references: [id])
@@ -580,4 +591,35 @@ model Auditoria {
 
   @@index([empresaId, creadoEn])
   @@map("auditorias")
+}
+
+// Solicitud pública: no afecta caja, inventario ni puntos hasta ser aceptada.
+model PedidoWeb {
+  id String @id @default(uuid())
+  empresaId Int
+  sucursalId Int
+  clave String
+  estado String @default("RECIBIDO")
+  nombre String
+  telefono String
+  direccion String
+  zona String
+  observacion String?
+  items Json
+  subtotal Decimal @db.Decimal(10, 2)
+  costoDomicilio Decimal @db.Decimal(10, 2)
+  total Decimal @db.Decimal(10, 2)
+  metodoPago MetodoPago @default(EFECTIVO)
+  pedidoId Int? @unique
+  repartidorId Int?
+  motivo String?
+  creadoEn DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+  pedido Pedido? @relation(fields: [pedidoId], references: [id])
+  sucursal Sucursal @relation(fields: [sucursalId], references: [id])
+  repartidor Usuario? @relation(fields: [repartidorId], references: [id])
+  @@unique([empresaId, clave])
+  @@index([empresaId, estado, creadoEn])
+  @@map("pedidos_web")
 }

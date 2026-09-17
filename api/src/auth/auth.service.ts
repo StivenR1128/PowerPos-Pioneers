@@ -109,6 +109,7 @@ export class AuthService {
       empresa: {
         id: empresa.id,
         nombre: empresa.nombre,
+        tiendaRuta: `/tienda/${empresa.tiendaSlug}`,
         nit: empresa.nit,
       },
       sucursal: {

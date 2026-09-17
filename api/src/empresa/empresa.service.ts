@@ -14,7 +14,7 @@ export class EmpresaService {
   async actualizar(empresaId: number, datos: any) {
     return this.prisma.empresa.update({
       where: { id: empresaId },
-      data: datos,
+      data: { nombre: datos.nombre, nit: datos.nit, email: datos.email, telefono: datos.telefono, direccion: datos.direccion },
     });
   }
 

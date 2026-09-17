@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -36,12 +36,12 @@ export class ClientesService {
     });
   }
 
-  async actualizar(id: number, datos: any) {
-    const cliente = await this.prisma.cliente.findUnique({ where: { id } });
+  async actualizar(id: number, datos: any, empresaId: number) {
+    const cliente = await this.prisma.cliente.findUnique({ where: { id, empresaId } });
     if (!cliente) throw new NotFoundException('Cliente no encontrado');
 
     return this.prisma.cliente.update({
-      where: { id },
+      where: { id, empresaId },
       data: {
         nombre: datos.nombre ?? cliente.nombre,
         documento: datos.documento !== undefined ? datos.documento : cliente.documento,
@@ -55,19 +55,19 @@ export class ClientesService {
     });
   }
 
-  async toggleActivo(id: number) {
-    const cliente = await this.prisma.cliente.findUnique({ where: { id } });
+  async toggleActivo(id: number, empresaId: number) {
+    const cliente = await this.prisma.cliente.findUnique({ where: { id, empresaId } });
     if (!cliente) throw new NotFoundException('Cliente no encontrado');
 
     return this.prisma.cliente.update({
-      where: { id },
+      where: { id, empresaId },
       data: { activo: !cliente.activo },
     });
   }
 
-  async obtenerDetalle(id: number) {
+  async obtenerDetalle(id: number, empresaId: number) {
     const cliente = await this.prisma.cliente.findUnique({
-      where: { id },
+      where: { id, empresaId },
       include: {
         pedidos: {
           orderBy: { creadoEn: 'desc' },
@@ -88,23 +88,15 @@ export class ClientesService {
     return { ...cliente, totalGastado, totalPedidos };
   }
 
-  async agregarPuntos(clienteId: number, puntos: number) {
+  async agregarPuntos(clienteId: number, puntos: number, empresaId: number) {
+    if (!Number.isInteger(puntos) || puntos <= 0) throw new BadRequestException('Ingrese una cantidad entera positiva de puntos');
     return this.prisma.cliente.update({
-      where: { id: clienteId },
+      where: { id: clienteId, empresaId },
       data: { puntos: { increment: puntos } },
     });
   }
 
-  async redimirPuntos(clienteId: number, puntos: number) {
-    const cliente = await this.prisma.cliente.findUnique({ where: { id: clienteId } });
-    if (!cliente) throw new NotFoundException('Cliente no encontrado');
-    if (cliente.puntos < puntos) {
-      throw new NotFoundException('El cliente no tiene suficientes puntos');
-    }
-
-    return this.prisma.cliente.update({
-      where: { id: clienteId },
-      data: { puntos: { decrement: puntos } },
-    });
+  async redimirPuntos(clienteId: number, puntos: number, empresaId: number) {
+    throw new BadRequestException('Canjee los puntos desde una venta en POS para aplicar y registrar el descuento.');
   }
 }

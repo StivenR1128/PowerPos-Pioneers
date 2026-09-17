@@ -56,17 +56,17 @@ Fuente: [api/src/categorias/categorias.controller.ts](../../api/src/categorias/c
 
 ## /clientes
 
-Fuente: [api/src/clientes/clientes.controller.ts](../../api/src/clientes/clientes.controller.ts). Guards de clase: JwtAuthGuard.
+Fuente: [api/src/clientes/clientes.controller.ts](../../api/src/clientes/clientes.controller.ts). Guards de clase: JwtAuthGuard, RolesGuard.
 
 | Método | Ruta | Roles declarados | Entradas anotadas |
 | --- | --- | --- | --- |
-| GET | `/clientes` | Sin restricción de rol declarada | Query('busqueda') |
-| POST | `/clientes` | Sin restricción de rol declarada | Body() |
-| GET | `/clientes/:id` | Sin restricción de rol declarada | Param('id') |
-| PATCH | `/clientes/:id` | Sin restricción de rol declarada | Param('id'); Body() |
-| PATCH | `/clientes/:id/toggle-activo` | Sin restricción de rol declarada | Param('id') |
-| POST | `/clientes/:id/puntos/agregar` | Sin restricción de rol declarada | Param('id'); Body('puntos') |
-| POST | `/clientes/:id/puntos/redimir` | Sin restricción de rol declarada | Param('id'); Body('puntos') |
+| GET | `/clientes` | 'ADMIN_EMPRESA','GERENTE','CAJERO' | Query('busqueda') |
+| POST | `/clientes` | 'ADMIN_EMPRESA','GERENTE','CAJERO' | Body() |
+| GET | `/clientes/:id` | 'ADMIN_EMPRESA','GERENTE','CAJERO' | Param('id') |
+| PATCH | `/clientes/:id` | 'ADMIN_EMPRESA','GERENTE','CAJERO' | Param('id'); Body() |
+| PATCH | `/clientes/:id/toggle-activo` | 'ADMIN_EMPRESA','GERENTE','CAJERO' | Param('id') |
+| POST | `/clientes/:id/puntos/agregar` | 'ADMIN_EMPRESA' | Param('id'); Body('puntos') |
+| POST | `/clientes/:id/puntos/redimir` | 'ADMIN_EMPRESA','GERENTE','CAJERO' | Param('id'); Body('puntos') |
 
 ## /consumo-empleados
 
@@ -80,13 +80,13 @@ Fuente: [api/src/consumo-empleados/consumo-empleados.controller.ts](../../api/sr
 
 ## /empresa
 
-Fuente: [api/src/empresa/empresa.controller.ts](../../api/src/empresa/empresa.controller.ts). Guards de clase: JwtAuthGuard.
+Fuente: [api/src/empresa/empresa.controller.ts](../../api/src/empresa/empresa.controller.ts). Guards de clase: JwtAuthGuard, RolesGuard.
 
 | Método | Ruta | Roles declarados | Entradas anotadas |
 | --- | --- | --- | --- |
 | GET | `/empresa` | Sin restricción de rol declarada | — |
-| PATCH | `/empresa` | Sin restricción de rol declarada | Body() |
-| POST | `/empresa/logo` | Sin restricción de rol declarada | UploadedFile() |
+| PATCH | `/empresa` | 'ADMIN_EMPRESA' | Body() |
+| POST | `/empresa/logo` | 'ADMIN_EMPRESA' | UploadedFile() |
 
 ## /financiero
 
@@ -151,15 +151,15 @@ Fuente: [api/src/preparaciones/preparaciones.controller.ts](../../api/src/prepar
 
 ## /productos
 
-Fuente: [api/src/productos/productos.controller.ts](../../api/src/productos/productos.controller.ts). Guards de clase: JwtAuthGuard.
+Fuente: [api/src/productos/productos.controller.ts](../../api/src/productos/productos.controller.ts). Guards de clase: JwtAuthGuard, RolesGuard.
 
 | Método | Ruta | Roles declarados | Entradas anotadas |
 | --- | --- | --- | --- |
-| POST | `/productos` | Sin restricción de rol declarada | Body() |
+| POST | `/productos` | 'ADMIN_EMPRESA', 'GERENTE' | Body() |
 | GET | `/productos` | Sin restricción de rol declarada | Query('categoriaId') |
 | GET | `/productos/:id` | Sin restricción de rol declarada | Param('id') |
-| PATCH | `/productos/:id` | Sin restricción de rol declarada | Param('id'); Body() |
-| DELETE | `/productos/:id` | Sin restricción de rol declarada | Param('id') |
+| PATCH | `/productos/:id` | 'ADMIN_EMPRESA', 'GERENTE' | Param('id'); Body() |
+| DELETE | `/productos/:id` | 'ADMIN_EMPRESA', 'GERENTE' | Param('id') |
 
 ## /reportes
 
@@ -207,6 +207,22 @@ Fuente: [api/src/tareas/tareas.controller.ts](../../api/src/tareas/tareas.contro
 | Método | Ruta | Roles declarados | Entradas anotadas |
 | --- | --- | --- | --- |
 | POST | `/tareas/probar-cumpleanos` | Sin restricción de rol declarada | — |
+
+## /tiendas
+
+Fuente: [api/src/tienda/tienda.controller.ts](../../api/src/tienda/tienda.controller.ts). Guards de clase: ninguno declarado.
+
+| Método | Ruta | Roles declarados | Entradas anotadas |
+| --- | --- | --- | --- |
+| GET | `/tiendas/:slug` | Sin restricción de rol declarada | Param('slug') |
+| POST | `/tiendas/:slug/pedidos` | Sin restricción de rol declarada | Param('slug'); Body() |
+| GET | `/tiendas/:slug/pedidos/:id` | Sin restricción de rol declarada | Param('slug'); Param('id') |
+| GET | `/tiendas/resumen` | 'ADMIN_EMPRESA','GERENTE','CAJERO' | — |
+| GET | `/tiendas/configuracion` | 'ADMIN_EMPRESA', 'GERENTE', 'CAJERO' | — |
+| PATCH | `/tiendas/configuracion` | 'ADMIN_EMPRESA' | Body() |
+| GET | `/tiendas/pedidos` | 'ADMIN_EMPRESA', 'GERENTE', 'CAJERO', 'DOMICILIARIO' | — |
+| GET | `/tiendas/repartidores` | 'ADMIN_EMPRESA', 'GERENTE', 'CAJERO' | — |
+| PATCH | `/tiendas/pedidos/:id` | 'ADMIN_EMPRESA', 'GERENTE', 'CAJERO', 'DOMICILIARIO' | Param('id'); Body() |
 
 ## /usuarios
 

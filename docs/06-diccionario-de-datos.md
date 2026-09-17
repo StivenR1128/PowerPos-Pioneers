@@ -2,7 +2,7 @@
 
 Generado desde [schema.prisma](../api/prisma/schema.prisma). Describe el esquema del código, no confirma que una base desplegada haya aplicado sus migraciones.
 
-Incluye **25 modelos**, **49 relaciones físicas** y **9 enumeraciones**.
+Incluye **26 modelos**, **53 relaciones físicas** y **9 enumeraciones**.
 
 Convenciones: `?` admite nulo; `[]` es lista; `@id` identifica PK, `@unique` unicidad y `@relation` FK. Campos de relación Prisma no son columnas adicionales. `@updatedAt` lo administra Prisma; no implica un trigger de PostgreSQL. `Decimal(p,s)` conserva precisión y escala declaradas; los servicios pueden convertir valores a Number.
 
@@ -39,6 +39,9 @@ Tabla física: `empresas`.
 | modoPreparacion | ModoPreparacion | No | @default(KDS) | — |
 | facturacionElectronicaHabilitada | Boolean | No | @default(false) | — |
 | consumoEmpleadosHabilitado | Boolean | No | @default(false) | — |
+| tiendaSlug | String | No | @unique @default(uuid()) | — |
+| tiendaConfig | Json | No | @default("{}") | — |
+| fidelizacionConfig | Json | No | @default("{}") | — |
 | creadoEn | DateTime | No | @default(now()) | — |
 | actualizadoEn | DateTime | No | @updatedAt | — |
 
@@ -46,6 +49,7 @@ Relaciones de navegación Prisma:
 
 | Campo | Destino | Declaración |
 | --- | --- | --- |
+| pedidosWeb | PedidoWeb[] | Lado inverso; FK declarada en el otro modelo |
 | usuarios | Usuario[] | Lado inverso; FK declarada en el otro modelo |
 | sucursales | Sucursal[] | Lado inverso; FK declarada en el otro modelo |
 | categorias | Categoria[] | Lado inverso; FK declarada en el otro modelo |
@@ -76,6 +80,7 @@ Relaciones de navegación Prisma:
 
 | Campo | Destino | Declaración |
 | --- | --- | --- |
+| pedidosWeb | PedidoWeb[] | Lado inverso; FK declarada en el otro modelo |
 | empresa | Empresa | @relation(fields: [empresaId], references: [id]) |
 | usuarios | Usuario[] | Lado inverso; FK declarada en el otro modelo |
 | pedidos | Pedido[] | Lado inverso; FK declarada en el otro modelo |
@@ -105,6 +110,7 @@ Relaciones de navegación Prisma:
 
 | Campo | Destino | Declaración |
 | --- | --- | --- |
+| entregasWeb | PedidoWeb[] | Lado inverso; FK declarada en el otro modelo |
 | empresa | Empresa? | @relation(fields: [empresaId], references: [id]) |
 | sucursal | Sucursal? | @relation(fields: [sucursalId], references: [id]) |
 | pedidos | Pedido[] | Lado inverso; FK declarada en el otro modelo |
@@ -452,11 +458,16 @@ Tabla física: `pedidos`.
 | observacion | String? | Sí | — | — |
 | creadoEn | DateTime | No | @default(now()) | — |
 | actualizadoEn | DateTime | No | @updatedAt | — |
+| puntosGanados | Int | No | @default(0) | — |
+| puntosCanjeados | Int | No | @default(0) | — |
+| valorPuntoAplicado | Decimal | No | @db.Decimal(10, 2) @default(0) | — |
+| costoDomicilio | Decimal | No | @db.Decimal(10, 2) @default(0) | — |
 
 Relaciones de navegación Prisma:
 
 | Campo | Destino | Declaración |
 | --- | --- | --- |
+| pedidoWeb | PedidoWeb? | Lado inverso; FK declarada en el otro modelo |
 | sucursal | Sucursal | @relation(fields: [sucursalId], references: [id]) |
 | usuario | Usuario | @relation(fields: [usuarioId], references: [id]) |
 | cliente | Cliente? | @relation(fields: [clienteId], references: [id]) |
@@ -647,3 +658,41 @@ Relaciones de navegación Prisma:
 | --- | --- | --- |
 | empresa | Empresa? | @relation(fields: [empresaId], references: [id]) |
 | usuario | Usuario? | @relation(fields: [usuarioId], references: [id]) |
+
+## PedidoWeb
+
+Tabla física: `pedidos_web`.
+
+| Campo | Tipo Prisma | Admite nulo | Restricciones / valor inicial | Nota del esquema |
+| --- | --- | --- | --- | --- |
+| id | String | No | @id @default(uuid()) | — |
+| empresaId | Int | No | —; FK a Empresa.id | — |
+| sucursalId | Int | No | —; FK a Sucursal.id | — |
+| clave | String | No | — | — |
+| estado | String | No | @default("RECIBIDO") | — |
+| nombre | String | No | — | — |
+| telefono | String | No | — | — |
+| direccion | String | No | — | — |
+| zona | String | No | — | — |
+| observacion | String? | Sí | — | — |
+| items | Json | No | — | — |
+| subtotal | Decimal | No | @db.Decimal(10, 2) | — |
+| costoDomicilio | Decimal | No | @db.Decimal(10, 2) | — |
+| total | Decimal | No | @db.Decimal(10, 2) | — |
+| metodoPago | MetodoPago | No | @default(EFECTIVO) | — |
+| pedidoId | Int? | Sí | @unique; FK a Pedido.id | — |
+| repartidorId | Int? | Sí | —; FK a Usuario.id | — |
+| motivo | String? | Sí | — | — |
+| creadoEn | DateTime | No | @default(now()) | — |
+| actualizadoEn | DateTime | No | @updatedAt | — |
+
+Restricciones de modelo: `@@unique([empresaId, clave])`; `@@index([empresaId, estado, creadoEn])`.
+
+Relaciones de navegación Prisma:
+
+| Campo | Destino | Declaración |
+| --- | --- | --- |
+| empresa | Empresa | @relation(fields: [empresaId], references: [id]) |
+| pedido | Pedido? | @relation(fields: [pedidoId], references: [id]) |
+| sucursal | Sucursal | @relation(fields: [sucursalId], references: [id]) |
+| repartidor | Usuario? | @relation(fields: [repartidorId], references: [id]) |

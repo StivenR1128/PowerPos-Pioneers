@@ -1,10 +1,15 @@
 'use client';
+import { useEffect, useState } from 'react';
+import api from '@/lib/api';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { ShoppingCart, LayoutDashboard, Package, Boxes, Users, DollarSign, BarChart3, Settings, LogOut, UtensilsCrossed } from 'lucide-react';
 
 const ITEMS = [
   { href: '/pos', label: 'POS', icon: ShoppingCart },
+  { href: '/domicilios', label: 'Domicilios', icon: ShoppingCart },
+  { href: '/mi-tienda', label: 'Mi tienda', icon: Settings },
+  { href: '/fidelizacion', label: 'Puntos', icon: Users },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/productos', label: 'Productos', icon: Package },
   { href: '/inventario', label: 'Inventario', icon: Boxes },
@@ -18,9 +23,20 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const { usuario, logout } = useAuthStore();
+  const [pendientesWeb, setPendientesWeb] = useState(0);
+  useEffect(() => {
+    if (!['CAJERO','ADMIN_EMPRESA','GERENTE'].includes(usuario?.rol || '')) return;
+    let activo = true;
+    const cargar = () => api.get('/tienda-admin/resumen').then(r=>{if(activo)setPendientesWeb(r.data.pendientes);}).catch(()=>{});
+    void cargar(); const timer = setInterval(cargar,5000);
+    return () => { activo=false; clearInterval(timer); };
+  },[usuario?.rol,usuario?.empresaId]);
   const esAdminOGerente = usuario?.rol === 'ADMIN_EMPRESA' || usuario?.rol === 'GERENTE';
   const itemsVisibles = ITEMS.filter((item) => {
-    if (usuario?.rol === 'CAJERO') return item.href === '/pos';
+    if (['/mi-tienda','/fidelizacion'].includes(item.href)) return usuario?.rol === 'ADMIN_EMPRESA';
+    if (item.href === '/domicilios') return ['ADMIN_EMPRESA','GERENTE','CAJERO','DOMICILIARIO'].includes(usuario?.rol || '');
+    if (usuario?.rol === 'DOMICILIARIO') return item.href === '/domicilios';
+    if (usuario?.rol === 'CAJERO') return ['/pos','/domicilios'].includes(item.href);
     if (esAdminOGerente) return true;
     return usuario?.permisos?.[item.href.replace('/', '')] !== false;
   });
@@ -68,6 +84,7 @@ export default function Navbar() {
           </button>
         </div>
       </div>
+      {pendientesWeb>0 && <div role="status" className="mt-3 rounded-lg bg-teal-900 px-4 py-2 text-sm text-white"><a href="/domicilios" className="block">{pendientesWeb} pedido(s) web por revisar · Abrir Domicilios →</a></div>}
     </header>
   );
 }

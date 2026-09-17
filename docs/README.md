@@ -1,5 +1,7 @@
 # Documentación de PowerPOS Pioneers
 
+> Actualización funcional 1.2: consultar [Tienda por empresa, domicilios y fidelización configurable](12-tiendas-domicilios-fidelizacion.md). Sustituye la regla fija de puntos de los manuales/PDF 1.1. Las nuevas funciones requieren aplicar la migración y desplegar la aplicación; la landing comercial es independiente.
+
 Versión documental: 1.1 · Actualización: 16 de septiembre de 2026 · Idioma: español.
 
 Este expediente describe el código disponible en el espacio de trabajo, incluidos cambios locales todavía no confirmados en Git. Se prepara para entrega académica, mantenimiento técnico y documentación de adquirentes; no constituye un acta de aceptación ni una certificación de funcionamiento en producción.

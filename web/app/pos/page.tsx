@@ -77,6 +77,10 @@ export default function POSPage() {
 
   // Cliente asociado al pedido
   const [clienteSeleccionado, setClienteSeleccionado] = useState<any>(null);
+  const [reglasPuntos, setReglasPuntos] = useState<{habilitado:boolean;compraPorPunto:number;valorPunto:number;categoriasExcluidas:number[];productosExcluidos:number[]}|null>(null);
+  const [puntosCanjeados, setPuntosCanjeados] = useState(0);
+  useEffect(() => { if (!usuario) return; api.get('/tienda-admin/configuracion').then(r=>setReglasPuntos(r.data.fidelizacion)).catch(()=>setReglasPuntos(null)); }, [usuario]);
+  useEffect(() => { setPuntosCanjeados(0); }, [clienteSeleccionado?.id]);
   const [busquedaCliente, setBusquedaCliente] = useState('');
   const [tecladoClienteVisible, setTecladoClienteVisible] = useState(false);
   const [tecladoObservacionVisible, setTecladoObservacionVisible] = useState(false);
@@ -100,7 +104,12 @@ export default function POSPage() {
         ? []
         : adicionalesCatalogo;
 
-  const total = carrito.reduce((acc, item) => acc + precioLinea(item), 0);
+  const subtotalPuntos = carrito.reduce((acc, item) => acc + precioLinea(item), 0);
+  const canjeAplicado = reglasPuntos?.habilitado && clienteSeleccionado ? Math.min(puntosCanjeados, clienteSeleccionado.puntos, Math.floor(subtotalPuntos / (reglasPuntos.valorPunto || Infinity))) : 0;
+  const descuentoPuntos = Math.round(canjeAplicado * (reglasPuntos?.valorPunto || 0) * 100) / 100;
+  const total = subtotalPuntos - descuentoPuntos;
+  const elegiblePuntos = reglasPuntos ? carrito.filter(i=>!reglasPuntos.productosExcluidos.includes(i.producto.id)&&!reglasPuntos.categoriasExcluidas.includes(i.producto.categoria.id)).reduce((s,i)=>s+precioLinea(i),0) : 0;
+  const puntosEstimados = reglasPuntos?.habilitado && reglasPuntos.compraPorPunto>0 && subtotalPuntos>0 ? Math.floor(elegiblePuntos * (1-descuentoPuntos/subtotalPuntos)/reglasPuntos.compraPorPunto) : 0;
 
   useEffect(() => {
     setMounted(true);
@@ -782,6 +791,7 @@ export default function POSPage() {
         sucursalId: usuario?.sucursalId || 1,
         metodoPago,
         clienteId: clienteSeleccionado?.id || null,
+        puntosCanjeados: canjeAplicado,
         items: carrito.map((item) => ({
           productoId: item.producto.id,
           cantidad: item.cantidad,
@@ -793,6 +803,8 @@ export default function POSPage() {
       setPedidoExitoso(data.numero);
       setUltimoPedido(data.numero);
       setCarrito([]);
+      setPuntosCanjeados(0);
+      if (clienteSeleccionado) setClienteSeleccionado((c:any)=>c ? {...c,puntos:c.puntos-(data.puntosCanjeados||0)+(data.puntosGanados||0)} : c);
 
       const nombreCliente = data?.cliente?.nombre || clienteSeleccionado?.nombre || null;
       canalPantalla.current?.postMessage({
@@ -1088,11 +1100,12 @@ export default function POSPage() {
             </div>
 
             <div className="p-4 border-t border-gray-800 space-y-3">
-              {clienteSeleccionado && total > 0 && (
+              {clienteSeleccionado && reglasPuntos?.habilitado && subtotalPuntos > 0 && (
                 <div className="text-center text-xs text-yellow-400">
-                  Este pedido sumará +{Math.floor(total / 1000)} puntos a {clienteSeleccionado.nombre.split(' ')[0]}
+                  Puntos estimados: +{puntosEstimados} para {clienteSeleccionado.nombre.split(' ')[0]}. El sistema confirma el cálculo al guardar.
                 </div>
               )}
+              {clienteSeleccionado && reglasPuntos?.habilitado && reglasPuntos.valorPunto>0 && <label className="block text-sm text-gray-300">Puntos a canjear · cada punto vale ${reglasPuntos.valorPunto.toLocaleString('es-CO')}<input type="number" min={0} max={Math.min(clienteSeleccionado.puntos,Math.floor(subtotalPuntos/reglasPuntos.valorPunto))} step={1} value={canjeAplicado} onChange={e=>setPuntosCanjeados(Math.max(0,Math.floor(Number(e.target.value)||0)))} className="mt-1 w-full rounded bg-gray-800 p-2"/><span className="text-xs">Descuento por puntos: ${descuentoPuntos.toLocaleString('es-CO')}</span></label>}
               <div className="flex justify-between text-white font-bold text-lg">
                 <span>Total</span>
                 <span className="text-orange-500">${total.toLocaleString()}</span>

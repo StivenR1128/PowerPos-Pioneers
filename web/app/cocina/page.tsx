@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { LayoutDashboard } from 'lucide-react';
 
 interface Pedido {
+  cliente?: { nombre: string } | null;
   id: number;
   numero: string;
   estado: string;

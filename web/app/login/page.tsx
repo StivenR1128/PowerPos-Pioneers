@@ -37,6 +37,9 @@ export default function LoginPage() {
         case 'COCINERO':
           router.push('/cocina');
           break;
+        case 'DOMICILIARIO':
+          router.push('/domicilios');
+          break;
         default:
           router.push('/pos');
       }

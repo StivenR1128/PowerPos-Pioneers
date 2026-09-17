@@ -313,6 +313,7 @@ export default function ClientesPage() {
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
             <div className="bg-gray-900 rounded-2xl p-6 w-full max-w-md border border-gray-800">
               <h3 className="text-white font-bold text-lg mb-1">{modalPuntos.nombre}</h3>
+              <p className="mb-3 text-sm text-gray-400">Canjea desde una venta en POS. Los ajustes manuales solo los realiza el administrador.</p>
               <p className="text-gray-400 text-sm mb-4">
                 Puntos actuales: <span className="text-yellow-400 font-bold">{modalPuntos.puntos}</span>
               </p>
@@ -322,7 +323,6 @@ export default function ClientesPage() {
                   <select value={puntosForm.tipo} onChange={(e) => setPuntosForm({ ...puntosForm, tipo: e.target.value })}
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500">
                     <option value="agregar">Agregar puntos</option>
-                    <option value="redimir">Redimir puntos</option>
                   </select>
                 </div>
                 <div>

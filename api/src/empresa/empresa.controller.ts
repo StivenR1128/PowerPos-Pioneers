@@ -4,8 +4,10 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { EmpresaService } from './empresa.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('empresa')
 export class EmpresaController {
   constructor(private readonly empresaService: EmpresaService) {}
@@ -16,11 +18,13 @@ export class EmpresaController {
   }
 
   @Patch()
+  @Roles('ADMIN_EMPRESA')
   actualizar(@Body() body: any, @Request() req: any) {
     return this.empresaService.actualizar(req.user.empresaId, body);
   }
 
   @Post('logo')
+  @Roles('ADMIN_EMPRESA')
   @UseInterceptors(FileInterceptor('logo', {
     storage: diskStorage({
       destination: './uploads/logos',

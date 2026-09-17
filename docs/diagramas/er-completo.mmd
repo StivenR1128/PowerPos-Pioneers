@@ -3,6 +3,7 @@ erDiagram
     Int id PK
     String nombre
     String nit UK
+    String tiendaSlug UK
   }
   Sucursal {
     Int id PK
@@ -147,6 +148,16 @@ erDiagram
     Int empresaId FK "nullable"
     Int usuarioId FK "nullable"
   }
+  PedidoWeb {
+    String id PK
+    Int empresaId FK
+    Int sucursalId FK
+    String estado
+    String nombre
+    Decimal total
+    Int pedidoId FK "nullable"
+    Int repartidorId FK "nullable"
+  }
   Empresa ||..o{ Sucursal : "empresaId"
   Empresa |o..o{ Usuario : "empresaId"
   Sucursal |o..o{ Usuario : "sucursalId"
@@ -196,3 +207,7 @@ erDiagram
   Producto ||..o{ ConsumoEmpleadoItem : "productoId"
   Empresa |o..o{ Auditoria : "empresaId"
   Usuario |o..o{ Auditoria : "usuarioId"
+  Empresa ||..o{ PedidoWeb : "empresaId"
+  Pedido |o..o{ PedidoWeb : "pedidoId"
+  Sucursal ||..o{ PedidoWeb : "sucursalId"
+  Usuario |o..o{ PedidoWeb : "repartidorId"
