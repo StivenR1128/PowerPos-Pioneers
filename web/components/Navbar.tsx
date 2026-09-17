@@ -47,44 +47,54 @@ export default function Navbar() {
   const handleLogout = () => { logout(); router.push('/login'); };
 
   return (
-    <header className="bg-gray-900 border-b border-gray-800 px-3 md:px-6 py-3">
-      <div className="flex items-center justify-between gap-3 min-w-0">
+    <header className="bg-gray-900 border-b border-gray-800">
+      <div className="flex items-center justify-between gap-3 min-w-0 px-3 md:px-6 py-3">
         <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-shrink">
           <h1 className="text-lg md:text-xl font-bold text-white whitespace-nowrap">Power<span className="text-orange-500">POS</span></h1>
-          <span className="text-gray-500 text-sm hidden sm:inline">|</span>
-          <span className="text-gray-400 text-xs md:text-sm max-w-[180px] md:max-w-[220px] truncate block min-w-0">
+          <span className="text-gray-600 hidden sm:inline">|</span>
+          <span className="text-gray-400 text-xs md:text-sm max-w-[160px] md:max-w-[240px] truncate block min-w-0">
             {usuario?.empresa || 'Empresa'}
           </span>
         </div>
 
-        <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1 justify-end overflow-x-auto scrollbar-hide">
-          {itemsVisibles.map((item) => {
-            const activo = pathname === item.href;
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.href}
-                onClick={() => router.push(item.href)}
-                className={`flex items-center gap-1.5 md:gap-2 text-[11px] md:text-sm transition-colors whitespace-nowrap ${
-                  activo ? 'text-orange-500' : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                <Icon size={15} className="md:w-[16px] md:h-[16px]" />
-                <span className="hidden sm:inline">{item.label}</span>
-              </button>
-            );
-          })}
-
-          <span className="text-gray-500 text-sm hidden md:inline">|</span>
-          <span className="text-gray-400 text-xs md:text-sm max-w-[120px] md:max-w-[180px] truncate block min-w-0">
+        <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+          <span className="text-gray-400 text-xs md:text-sm max-w-[120px] md:max-w-[180px] truncate hidden sm:block">
             {usuario?.nombre || 'Administrador'}
           </span>
-          <button onClick={handleLogout} className="text-gray-500 hover:text-white transition-colors flex-shrink-0 ml-1 md:ml-0">
+          <button onClick={handleLogout} title="Cerrar sesión" className="text-gray-500 hover:text-white transition-colors flex-shrink-0">
             <LogOut size={18} />
           </button>
         </div>
       </div>
-      {pendientesWeb>0 && <div role="status" className="mt-3 rounded-lg bg-teal-900 px-4 py-2 text-sm text-white"><a href="/domicilios" className="block">{pendientesWeb} pedido(s) web por revisar · Abrir Domicilios →</a></div>}
+
+      <nav className="flex flex-wrap items-center gap-1.5 px-3 md:px-6 pb-3">
+        {itemsVisibles.map((item) => {
+          const activo = pathname === item.href;
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.href}
+              onClick={() => router.push(item.href)}
+              className={`flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 rounded-lg text-xs md:text-sm font-medium whitespace-nowrap transition-colors ${
+                activo
+                  ? 'bg-orange-500/15 text-orange-400 border border-orange-500/30'
+                  : 'text-gray-400 border border-transparent hover:bg-gray-800 hover:text-white'
+              }`}
+            >
+              <Icon size={14} className="md:w-[15px] md:h-[15px] shrink-0" />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {pendientesWeb > 0 && (
+        <div role="status" className="px-3 md:px-6 pb-3">
+          <a href="/domicilios" className="block rounded-lg bg-teal-900 px-4 py-2 text-sm text-white hover:bg-teal-800 transition-colors">
+            {pendientesWeb} pedido(s) web por revisar · Abrir Domicilios →
+          </a>
+        </div>
+      )}
     </header>
   );
 }
