@@ -34,20 +34,18 @@ export default function Navbar() {
   }, [usuario?.empresaId, usuario?.tipoNegocio, setTipoNegocio]);
   useEffect(() => {
     if (!['CAJERO','ADMIN_EMPRESA','GERENTE'].includes(usuario?.rol || '')) return;
-    if (usuario?.tipoNegocio && usuario.tipoNegocio !== 'RESTAURANTE') return;
     let activo = true;
     const cargar = () => api.get('/tienda-admin/resumen').then(r=>{if(activo)setPendientesWeb(r.data.pendientes);}).catch(()=>{});
     void cargar(); const timer = setInterval(cargar,5000);
     return () => { activo=false; clearInterval(timer); };
-  },[usuario?.rol,usuario?.empresaId,usuario?.tipoNegocio]);
+  },[usuario?.rol,usuario?.empresaId]);
   const esAdminOGerente = usuario?.rol === 'ADMIN_EMPRESA' || usuario?.rol === 'GERENTE';
   const esRestaurante = !usuario?.tipoNegocio || usuario.tipoNegocio === 'RESTAURANTE';
   const itemsVisibles = ITEMS.filter((item) => {
-    if (!esRestaurante && ['/domicilios', '/mi-tienda', '/fidelizacion'].includes(item.href)) return false;
     if (['/mi-tienda','/fidelizacion'].includes(item.href)) return usuario?.rol === 'ADMIN_EMPRESA';
     if (item.href === '/domicilios') return ['ADMIN_EMPRESA','GERENTE','CAJERO','DOMICILIARIO'].includes(usuario?.rol || '');
     if (usuario?.rol === 'DOMICILIARIO') return item.href === '/domicilios';
-    if (usuario?.rol === 'CAJERO') return esRestaurante ? ['/pos','/domicilios'].includes(item.href) : item.href === '/pos';
+    if (usuario?.rol === 'CAJERO') return item.href === '/pos';
     if (esAdminOGerente) return true;
     return usuario?.permisos?.[item.href.replace('/', '')] !== false;
   });

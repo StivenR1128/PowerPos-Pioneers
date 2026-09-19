@@ -36,15 +36,11 @@ export class TiendaService {
     if (!body || typeof body !== 'object' || Array.isArray(body))
       throw new BadRequestException('Configuración inválida');
     const actual = await this.configuracion(empresaId);
-    const empresa = await this.prisma.empresa.findUnique({ where: { id: empresaId }, select: { tipoNegocio: true } });
     const t = { ...actual.tienda, ...body.tienda };
     const p = { ...actual.fidelizacion, ...body.fidelizacion };
     for (const campo of ['publicada', 'pedidosHabilitados'])
       if (typeof t[campo] !== 'boolean')
         throw new BadRequestException('Estado de tienda inválido');
-    if (empresa?.tipoNegocio !== 'RESTAURANTE' && t.pedidosHabilitados) {
-      throw new BadRequestException('Los pedidos web con domicilio aún no están habilitados para comercios');
-    }
     for (const campo of [
       'titulo',
       'descripcion',
@@ -193,7 +189,6 @@ export class TiendaService {
     if (!body || typeof body !== 'object' || Array.isArray(body))
       throw new BadRequestException('Pedido inválido');
     const e = await this.empresaPublica(slug);
-    if (e.tipoNegocio !== 'RESTAURANTE') throw new BadRequestException('Los pedidos web aún no están habilitados para este tipo de negocio');
     const t = tiendaConfig(e.tiendaConfig);
     if (!t.pedidosHabilitados)
       throw new BadRequestException('La tienda no recibe pedidos por ahora');
