@@ -63,6 +63,7 @@ export default function CocinaPage() {
 
   useEffect(() => {
     if (!usuario) { router.push('/login'); return; }
+    if (usuario.tipoNegocio && usuario.tipoNegocio !== 'RESTAURANTE') return;
     if (usuario.modoPreparacion === 'COMANDAS') { router.replace('/pos'); return; }
     cargarPedidos();
     const intervalo = setInterval(cargarPedidos, 5000);
@@ -103,6 +104,10 @@ export default function CocinaPage() {
     if (minutos < 10) return 'text-yellow-400';
     return 'text-red-400';
   };
+
+  if (usuario?.tipoNegocio && usuario.tipoNegocio !== 'RESTAURANTE') {
+    return <main className="flex min-h-screen items-center justify-center bg-gray-950 p-6 text-white"><div className="max-w-md rounded-2xl border border-gray-800 bg-gray-900 p-6"><h1 className="text-xl font-bold">Cocina no disponible</h1><p className="mt-3 text-gray-400">Esta empresa usa el POS comercial. Solicita al administrador un rol de caja o administración para continuar.</p></div></main>;
+  }
 
   return (
     <div className="min-h-screen bg-gray-950">

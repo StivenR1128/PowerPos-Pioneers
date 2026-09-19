@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Patch, Post, Body, Request, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Param, Patch, Post, Body, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
@@ -31,8 +31,18 @@ export class SuperadminController {
   }
 
   @Patch('empresas/:id/estado')
-  cambiarEstado(@Param('id') id: string, @Body() body: { activo: boolean }) {
-    return this.superadminService.cambiarEstadoEmpresa(+id, body.activo);
+  cambiarEstado(@Param('id') id: string, @Body() body: { activo: boolean }, @Request() req: any) {
+    return this.superadminService.cambiarEstadoEmpresa(+id, body.activo, req.user.id);
+  }
+
+  @Patch('empresas/:id')
+  editarEmpresa(@Param('id') id: string, @Body() body: { nombre: string; nit: string; email: string; telefono?: string; direccion?: string }, @Request() req: any) {
+    return this.superadminService.editarEmpresa(+id, body, req.user.id);
+  }
+
+  @Delete('empresas/:id')
+  eliminarEmpresa(@Param('id') id: string, @Request() req: any) {
+    return this.superadminService.eliminarEmpresa(+id, req.user.id);
   }
 
   @Patch('empresas/:id/configuracion')
@@ -44,6 +54,7 @@ export class SuperadminController {
       modoPreparacion?: 'KDS' | 'COMANDAS';
       facturacionElectronicaHabilitada?: boolean;
       consumoEmpleadosHabilitado?: boolean;
+      tipoNegocio?: 'RESTAURANTE' | 'SUPERMERCADO' | 'TIENDA' | 'COMERCIO';
     },
     @Request() req: any,
   ) {

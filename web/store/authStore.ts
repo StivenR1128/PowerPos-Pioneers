@@ -10,6 +10,7 @@ interface Usuario {
   empresaId?: number;
   sucursalId?: number;
   plan?: string;
+  tipoNegocio?: 'RESTAURANTE' | 'SUPERMERCADO' | 'TIENDA' | 'COMERCIO';
   permisos?: Record<string, boolean>;
   modoPreparacion?: 'KDS' | 'COMANDAS';
   facturacionElectronicaHabilitada?: boolean;
@@ -22,6 +23,7 @@ interface AuthStore {
   inicioSesion: string | null;
   hydrated: boolean;
   setAuth: (token: string, usuario: Usuario) => void;
+  setTipoNegocio: (tipo: Usuario['tipoNegocio']) => void;
   logout: () => void;
   setHydrated: () => void;
 }
@@ -39,6 +41,7 @@ export const useAuthStore = create<AuthStore>()(
         }
         set({ token, usuario, inicioSesion: new Date().toISOString() });
       },
+      setTipoNegocio: (tipoNegocio) => set((state) => ({ usuario: state.usuario ? { ...state.usuario, tipoNegocio } : null })),
       logout: () => {
         if (typeof window !== 'undefined') {
           window.localStorage.removeItem('token');

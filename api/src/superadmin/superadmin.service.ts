@@ -1,8 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConflictException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuditoriaService } from '../auditoria/auditoria.service';
+import { TipoNegocio } from '@prisma/client';
+
+const tiposNegocio = Object.values(TipoNegocio);
+
+function validarTipoNegocio(valor: unknown): TipoNegocio {
+  if (typeof valor !== 'string' || !tiposNegocio.includes(valor as TipoNegocio)) {
+    throw new BadRequestException('Tipo de negocio no válido');
+  }
+  return valor as TipoNegocio;
+}
 
 @Injectable()
 export class SuperadminService {
@@ -10,6 +20,7 @@ export class SuperadminService {
 
   async crearEmpresa(datos: any, usuarioId?: number) {
     const { empresa, admin, administradores, plan = 'BASICO', permisos = {} } = datos;
+    const tipoNegocio = validarTipoNegocio(empresa?.tipoNegocio ?? 'RESTAURANTE');
     const listaAdministradores = Array.isArray(administradores) && administradores.length > 0
       ? administradores
       : admin
@@ -53,6 +64,7 @@ export class SuperadminService {
         email: empresa.email,
         telefono: empresa.telefono || null,
         direccion: empresa.direccion || null,
+        tipoNegocio,
         plan,
         permisos,
         sucursales: { create: { nombre: 'Sucursal Principal', direccion: empresa.direccion || null, telefono: empresa.telefono || null } },
@@ -89,7 +101,7 @@ export class SuperadminService {
       entidad: 'EMPRESA',
       entidadId: creada.id,
       usuarioId,
-      detalle: { plan, administradores: administradoresCreados.map((admin) => ({ nombre: admin.nombre, email: admin.email })) },
+      detalle: { plan, tipoNegocio, administradores: administradoresCreados.map((admin) => ({ nombre: admin.nombre, email: admin.email })) },
     });
 
     return {
@@ -98,6 +110,7 @@ export class SuperadminService {
       tiendaRuta: `/tienda/${creada.tiendaSlug}`,
       nit: creada.nit,
       plan: creada.plan,
+      tipoNegocio: creada.tipoNegocio,
       administradores: administradoresCreados,
       sucursal: {
         id: creada.sucursales[0].id,
@@ -131,7 +144,8 @@ export class SuperadminService {
     return empresas;
   }
 
-  async cambiarEstadoEmpresa(id: number, activo: boolean) {
+  async cambiarEstadoEmpresa(id: number, activo: boolean, usuarioId?: number) {
+    if (typeof activo !== 'boolean') throw new BadRequestException('El estado debe ser verdadero o falso');
     const empresa = await this.prisma.empresa.findUnique({ where: { id } });
     if (!empresa) throw new NotFoundException('Empresa no encontrada');
     const actualizada = await this.prisma.empresa.update({
@@ -139,8 +153,60 @@ export class SuperadminService {
       data: { activo },
       select: { id: true, nombre: true, nit: true, activo: true },
     });
-    await this.auditoria.registrar({ accion: activo ? 'ACTIVAR' : 'DESACTIVAR', entidad: 'EMPRESA', entidadId: id, detalle: { activo } });
+    await this.auditoria.registrar({ accion: activo ? 'ACTIVAR' : 'DESACTIVAR', entidad: 'EMPRESA', entidadId: id, usuarioId, detalle: { activo } });
     return actualizada;
+  }
+
+  async editarEmpresa(id: number, datos: { nombre: string; nit: string; email: string; telefono?: string; direccion?: string }, usuarioId?: number) {
+    const empresa = await this.prisma.empresa.findUnique({ where: { id } });
+    if (!empresa) throw new NotFoundException('Empresa no encontrada');
+    const nombre = datos.nombre?.trim();
+    const nit = datos.nit?.trim();
+    const email = datos.email?.trim().toLowerCase();
+    if (!nombre || !nit || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new BadRequestException('Nombre, NIT y email válido son obligatorios');
+    }
+    const nitExistente = await this.prisma.empresa.findUnique({ where: { nit } });
+    if (nitExistente && nitExistente.id !== id) throw new ConflictException('Ya existe una empresa con ese NIT');
+    const actualizada = await this.prisma.empresa.update({
+      where: { id },
+      data: { nombre, nit, email, telefono: datos.telefono?.trim() || null, direccion: datos.direccion?.trim() || null },
+      select: { id: true, nombre: true, nit: true, email: true, telefono: true, direccion: true, activo: true },
+    });
+    await this.auditoria.registrar({ accion: 'EDITAR', entidad: 'EMPRESA', entidadId: id, usuarioId, detalle: { anterior: { nombre: empresa.nombre, nit: empresa.nit }, nuevo: { nombre, nit } } });
+    return actualizada;
+  }
+
+  async eliminarEmpresa(id: number, usuarioId?: number) {
+    await this.prisma.$transaction(async (tx) => {
+      const empresa = await tx.empresa.findUnique({ where: { id }, select: { id: true, nombre: true, nit: true } });
+      if (!empresa) throw new NotFoundException('Empresa no encontrada');
+      const [categorias, productos, clientes, movimientos, adicionales, preparaciones, lotes, consumos, pedidosWeb, pedidos, cajas, movimientosInventario] = await Promise.all([
+        tx.categoria.count({ where: { empresaId: id } }),
+        tx.producto.count({ where: { empresaId: id } }),
+        tx.cliente.count({ where: { empresaId: id } }),
+        tx.movimientoFinanciero.count({ where: { empresaId: id } }),
+        tx.adicional.count({ where: { empresaId: id } }),
+        tx.preparacion.count({ where: { empresaId: id } }),
+        tx.lotePreparacion.count({ where: { empresaId: id } }),
+        tx.consumoEmpleado.count({ where: { empresaId: id } }),
+        tx.pedidoWeb.count({ where: { empresaId: id } }),
+        tx.pedido.count({ where: { sucursal: { empresaId: id } } }),
+        tx.caja.count({ where: { sucursal: { empresaId: id } } }),
+        tx.movimientoInventario.count({ where: { usuario: { empresaId: id } } }),
+      ]);
+      if ([categorias, productos, clientes, movimientos, adicionales, preparaciones, lotes, consumos, pedidosWeb, pedidos, cajas, movimientosInventario].some(Boolean)) {
+        throw new ConflictException('La empresa tiene datos cargados o actividad. Desactívala para conservar su historial.');
+      }
+      const usuarios = await tx.usuario.findMany({ where: { empresaId: id }, select: { id: true } });
+      await tx.auditoria.updateMany({ where: { usuarioId: { in: usuarios.map((usuario) => usuario.id) } }, data: { usuarioId: null } });
+      await tx.auditoria.updateMany({ where: { empresaId: id }, data: { empresaId: null } });
+      await tx.usuario.deleteMany({ where: { empresaId: id } });
+      await tx.sucursal.deleteMany({ where: { empresaId: id } });
+      await tx.empresa.delete({ where: { id } });
+      await tx.auditoria.create({ data: { accion: 'ELIMINAR', entidad: 'EMPRESA', entidadId: id, usuarioId, detalle: { nombre: empresa.nombre, nit: empresa.nit } } });
+    });
+    return { eliminado: true, id };
   }
 
   async actualizarConfiguracion(
@@ -151,22 +217,25 @@ export class SuperadminService {
       modoPreparacion?: 'KDS' | 'COMANDAS';
       facturacionElectronicaHabilitada?: boolean;
       consumoEmpleadosHabilitado?: boolean;
+      tipoNegocio?: TipoNegocio;
     },
     usuarioId?: number,
   ) {
     const empresa = await this.prisma.empresa.findUnique({ where: { id } });
     if (!empresa) throw new NotFoundException('Empresa no encontrada');
+    const tipoNegocio = datos.tipoNegocio === undefined ? undefined : validarTipoNegocio(datos.tipoNegocio);
 
     const actualizada = await this.prisma.empresa.update({
       where: { id },
       data: {
         ...(datos.plan ? { plan: datos.plan } : {}),
+        ...(tipoNegocio ? { tipoNegocio } : {}),
         ...(datos.permisos ? { permisos: datos.permisos } : {}),
         ...(datos.modoPreparacion ? { modoPreparacion: datos.modoPreparacion } : {}),
         ...(datos.facturacionElectronicaHabilitada !== undefined ? { facturacionElectronicaHabilitada: datos.facturacionElectronicaHabilitada } : {}),
         ...(datos.consumoEmpleadosHabilitado !== undefined ? { consumoEmpleadosHabilitado: datos.consumoEmpleadosHabilitado } : {}),
       },
-      select: { id: true, nombre: true, plan: true, permisos: true, modoPreparacion: true, facturacionElectronicaHabilitada: true, consumoEmpleadosHabilitado: true, activo: true },
+      select: { id: true, nombre: true, plan: true, tipoNegocio: true, permisos: true, modoPreparacion: true, facturacionElectronicaHabilitada: true, consumoEmpleadosHabilitado: true, activo: true },
     });
     await this.auditoria.registrar({ accion: 'CONFIGURAR', entidad: 'EMPRESA', entidadId: id, usuarioId, detalle: datos });
     return actualizada;

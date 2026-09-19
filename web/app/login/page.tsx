@@ -3,12 +3,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
-import { Keyboard } from 'lucide-react';
+import { Keyboard, Moon, Sun } from 'lucide-react';
 import TouchKeyboard from '@/components/TouchKeyboard';
+import { useTema } from '@/components/ThemeProvider';
 
 export default function LoginPage() {
   const router = useRouter();
   const { setAuth } = useAuthStore();
+  const { tema, cambiarTema } = useTema();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -57,7 +59,8 @@ export default function LoginPage() {
           <h1 className="text-4xl font-bold text-white mb-2">
             Power<span className="text-orange-500">POS</span>
           </h1>
-          <p className="text-gray-400">Pioneers — Sistema de gestión gastronómica</p>
+          <p className="text-gray-400">Pioneers — Sistema de punto de venta para tu negocio</p>
+          <button type="button" onClick={cambiarTema} className="mt-4 inline-flex items-center gap-2 rounded-lg border border-gray-700 px-3 py-2 text-sm text-gray-300" aria-label={`Cambiar a tema ${tema === 'oscuro' ? 'claro' : 'oscuro'}`}>{tema === 'oscuro' ? <Sun size={16} /> : <Moon size={16} />}{tema === 'oscuro' ? 'Tema claro' : 'Tema oscuro'}</button>
         </div>
 
         <div className="bg-gray-900 rounded-2xl p-8 border border-gray-800">

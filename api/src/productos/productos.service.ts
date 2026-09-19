@@ -1,12 +1,37 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ProductosService {
   constructor(private prisma: PrismaService) {}
 
+  private async validarDatosComercio(datos: any, empresaId: number, productoId?: number) {
+    const campos = ['stockActual', 'stockMinimo'] as const;
+    for (const campo of campos) {
+      if (datos[campo] !== undefined && (!Number.isInteger(datos[campo]) || datos[campo] < 0)) {
+        throw new BadRequestException(`${campo} debe ser un entero no negativo`);
+      }
+    }
+    if (datos.codigoBarras !== undefined) {
+      datos.codigoBarras = String(datos.codigoBarras).trim() || null;
+      if (datos.codigoBarras && datos.codigoBarras.length > 80) throw new BadRequestException('El código de barras es demasiado largo');
+      if (datos.codigoBarras) {
+        const existente = await this.prisma.producto.findFirst({
+          where: { empresaId, codigoBarras: datos.codigoBarras, ...(productoId ? { id: { not: productoId } } : {}) },
+          select: { id: true },
+        });
+        if (existente) throw new ConflictException('El código de barras ya está asignado a otro producto');
+      }
+    }
+    if (datos.categoriaId !== undefined) {
+      const categoria = await this.prisma.categoria.findFirst({ where: { id: Number(datos.categoriaId), empresaId, activo: true }, select: { id: true } });
+      if (!categoria) throw new BadRequestException('La categoría no pertenece a esta empresa');
+    }
+  }
+
   async crear(datos: any, empresaId: number) {
     const { ingredientes, adicionalIds, preparacionIds, ...productoData } = datos;
+    await this.validarDatosComercio(productoData, empresaId);
 
     return this.prisma.producto.create({
       data: {
@@ -98,6 +123,7 @@ export class ProductosService {
   async actualizar(id: number, datos: any, empresaId: number) {
     await this.obtener(id, empresaId);
     const { ingredientes, adicionalIds, preparacionIds, ...productoData } = datos;
+    await this.validarDatosComercio(productoData, empresaId, id);
 
     if (Array.isArray(adicionalIds)) {
       await this.prisma.productoAdicional.deleteMany({

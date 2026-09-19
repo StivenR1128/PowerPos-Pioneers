@@ -34,6 +34,7 @@ export class PedidosService {
     if (metodoPago && !['EFECTIVO','TARJETA','TRANSFERENCIA','NEQUI','DAVIPLATA'].includes(metodoPago)) throw new BadRequestException('Medio de pago no válido');
     const empresa = await db.empresa.findFirst({ where: { id: empresaId, activo: true } });
     if (!empresa) throw new NotFoundException('Empresa no disponible');
+    const esRestaurante = empresa.tipoNegocio === 'RESTAURANTE';
     const reglas = puntosConfig(empresa.fidelizacionConfig);
     const cajaAbierta = await db.caja.findFirst({
       where: { sucursalId, sucursal: { empresaId }, estado: 'ABIERTA' },
@@ -101,6 +102,9 @@ export class PedidosService {
 
       if (!producto.disponible) {
         throw new BadRequestException(`${producto.nombre} no está disponible`);
+      }
+      if (!esRestaurante && ((Array.isArray(item.adicionales) && item.adicionales.length > 0) || (Array.isArray(item.exclusiones) && item.exclusiones.length > 0))) {
+        throw new BadRequestException('Las recetas y adicionales solo se usan en restaurantes');
       }
 
       // Adicionales habilitados para este producto: los marcados en el producto,
@@ -179,6 +183,15 @@ export class PedidosService {
     monto(Math.round(total * 100) / 100, 'Total', 0, 99999999.99);
     if (puntosGanados > 2147483647) throw new BadRequestException('Revise la regla de acumulación: genera demasiados puntos');
 
+    for (const item of itemsValidados) {
+      if (!item.producto.controlaStock) continue;
+      const actualizado = await db.producto.updateMany({
+        where: { id: item.producto.id, empresaId, stockActual: { gte: item.cantidad } },
+        data: { stockActual: { decrement: item.cantidad } },
+      });
+      if (!actualizado.count) throw new BadRequestException(`Existencias insuficientes de ${item.producto.nombre}`);
+    }
+
     const numero = await this.generarNumeroPedido(sucursalId);
 
     const pedido = await db.pedido.create({
@@ -194,7 +207,7 @@ export class PedidosService {
         descuento,
         total,
         observacion: observacion || null,
-        estado: 'PENDIENTE',
+        estado: esRestaurante ? 'PENDIENTE' : 'ENTREGADO',
         detalles: {
           create: itemsValidados.map((item) => ({
             productoId: item.producto.id,
@@ -232,7 +245,7 @@ export class PedidosService {
     });
 
     // Descontar inventario respetando exclusiones
-    await this.descontarInventario(itemsValidados, db);
+    if (esRestaurante) await this.descontarInventario(itemsValidados, db);
 
     // Registrar ingreso automático por venta
     await db.movimientoFinanciero.create({
@@ -363,6 +376,8 @@ export class PedidosService {
 
   async actualizarEstado(id: number, estado: string, empresaId: number) {
     if (!['PENDIENTE','EN_COCINA','LISTO','ENTREGADO','ANULADO'].includes(estado)) throw new BadRequestException('Estado no válido');
+    const empresa = await this.prisma.empresa.findUnique({ where: { id: empresaId }, select: { tipoNegocio: true } });
+    if (empresa?.tipoNegocio !== 'RESTAURANTE') throw new BadRequestException('Las ventas comerciales requieren un flujo de devoluciones y conciliación para modificarse');
     const pedido = await this.prisma.pedido.findFirst({
       where: { id, sucursal: { empresaId } },
     });

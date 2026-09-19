@@ -4,6 +4,7 @@ import api from '@/lib/api';
 import { Plus, Edit, Trash2, X, Tag } from 'lucide-react';
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
+import { useAuthStore } from '@/store/authStore';
 
 interface Categoria {
   id: number;
@@ -41,6 +42,10 @@ interface Producto {
   disponible: boolean;
   aceptaAdicionales: boolean;
   activo: boolean;
+  codigoBarras?: string | null;
+  controlaStock: boolean;
+  stockActual: number;
+  stockMinimo: number;
   categoria: Categoria;
   ingredientes: { ingrediente: { id: number; nombre: string; unidad: string }; cantidad: string }[];
   adicionales: { adicional: { id: number; nombre: string; precio: string } }[];
@@ -56,6 +61,8 @@ const ICONOS_CATEGORIA = [
 ].filter((icono, indice, arreglo) => arreglo.indexOf(icono) === indice);
 
 export default function ProductosPage() {
+  const tipoNegocio = useAuthStore((state) => state.usuario?.tipoNegocio);
+  const esRestaurante = !tipoNegocio || tipoNegocio === 'RESTAURANTE';
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [ingredientesDisponibles, setIngredientesDisponibles] = useState<any[]>([]);
@@ -74,6 +81,10 @@ export default function ProductosPage() {
     categoriaId: '',
     disponible: true,
     aceptaAdicionales: true,
+    codigoBarras: '',
+    controlaStock: false,
+    stockActual: '0',
+    stockMinimo: '0',
   });
   const [recetaTemp, setRecetaTemp] = useState<IngredienteReceta[]>([]);
   const [adicionalIdsTemp, setAdicionalIdsTemp] = useState<number[]>([]);
@@ -119,6 +130,10 @@ export default function ProductosPage() {
         categoriaId: String(producto.categoria.id),
         disponible: producto.disponible,
         aceptaAdicionales: producto.aceptaAdicionales ?? true,
+        codigoBarras: producto.codigoBarras || '',
+        controlaStock: producto.controlaStock ?? false,
+        stockActual: String(producto.stockActual ?? 0),
+        stockMinimo: String(producto.stockMinimo ?? 0),
       });
       setRecetaTemp(
         producto.ingredientes.map((pi) => ({
@@ -131,7 +146,7 @@ export default function ProductosPage() {
       setAdicionalIdsTemp((producto.adicionales || []).map((pa) => pa.adicional.id));
     } else {
       setEditando(null);
-      setForm({ nombre: '', descripcion: '', precio: '', categoriaId: '', disponible: true, aceptaAdicionales: true });
+      setForm({ nombre: '', descripcion: '', precio: '', categoriaId: '', disponible: true, aceptaAdicionales: true, codigoBarras: '', controlaStock: !esRestaurante, stockActual: '0', stockMinimo: '0' });
       setRecetaTemp([]);
       setAdicionalIdsTemp([]);
     }
@@ -237,6 +252,7 @@ export default function ProductosPage() {
         disponible: form.disponible,
         aceptaAdicionales: form.aceptaAdicionales,
         adicionalIds: adicionalIdsTemp,
+        ...(!esRestaurante ? { codigoBarras: form.codigoBarras, controlaStock: form.controlaStock, stockActual: Number(form.stockActual), stockMinimo: Number(form.stockMinimo), aceptaAdicionales: false } : {}),
       };
       if (ingredientesPayload.length > 0) {
         payload.ingredientes = ingredientesPayload;
@@ -348,13 +364,13 @@ export default function ProductosPage() {
               <Tag size={16} />
               Nueva categoría
             </button>
-            <button
+            {esRestaurante && <button
               onClick={() => { setFormAdicional({ id: null, nombre: '', precio: '', ingredienteId: '', cantidad: '' }); setModalAdicionales(true); }}
               className="flex items-center gap-2 bg-gray-800 hover:bg-gray-700 text-white font-medium rounded-lg px-4 py-2 transition-colors"
             >
               <Plus size={16} />
               Adicionales
-            </button>
+            </button>}
             <button
               onClick={() => abrirModal()}
               className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-lg px-4 py-2 transition-colors"
@@ -436,7 +452,7 @@ export default function ProductosPage() {
                 <th className="text-left text-gray-500 text-sm font-medium px-4 py-3">Categoría</th>
                 <th className="text-left text-gray-500 text-sm font-medium px-4 py-3">Precio</th>
                 <th className="text-left text-gray-500 text-sm font-medium px-4 py-3">Disponible</th>
-                <th className="text-left text-gray-500 text-sm font-medium px-4 py-3">Receta</th>
+                <th className="text-left text-gray-500 text-sm font-medium px-4 py-3">{esRestaurante ? 'Receta' : 'Código / existencias'}</th>
                 <th className="text-right text-gray-500 text-sm font-medium px-4 py-3">Acciones</th>
               </tr>
             </thead>
@@ -473,7 +489,7 @@ export default function ProductosPage() {
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-gray-500 text-xs">
-                      {producto.ingredientes?.length || 0} ingredientes
+                      {esRestaurante ? `${producto.ingredientes?.length || 0} ingredientes` : `${producto.codigoBarras || 'Sin código'} · ${producto.controlaStock ? `${producto.stockActual} unidades` : 'Sin control'}`}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -601,6 +617,8 @@ export default function ProductosPage() {
                 </div>
               </div>
 
+              {!esRestaurante && <div className="space-y-3 rounded-xl border border-gray-800 p-3"><label className="block text-sm text-gray-400">Código de barras o SKU<input value={form.codigoBarras} onChange={(e) => setForm({ ...form, codigoBarras: e.target.value })} placeholder="Escanea o escribe el código" className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white" /></label><label className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={form.controlaStock} onChange={(e) => setForm({ ...form, controlaStock: e.target.checked })} /> Controlar existencias</label><div className="grid grid-cols-2 gap-3"><label className="text-sm text-gray-400">Existencias actuales<input type="number" min="0" step="1" value={form.stockActual} onChange={(e) => setForm({ ...form, stockActual: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white" /></label><label className="text-sm text-gray-400">Mínimo para alerta<input type="number" min="0" step="1" value={form.stockMinimo} onChange={(e) => setForm({ ...form, stockMinimo: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white" /></label></div><p className="text-xs text-gray-500">Las existencias se reducen al registrar la venta. Edita este valor al recibir mercancía.</p></div>}
+
               <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
@@ -612,7 +630,7 @@ export default function ProductosPage() {
                 <label htmlFor="disponible" className="text-gray-400 text-sm">Disponible para venta</label>
               </div>
 
-              <div className="flex items-center gap-3">
+              {esRestaurante && <div className="flex items-center gap-3">
                 <input
                   type="checkbox"
                   id="aceptaAdicionales"
@@ -623,10 +641,10 @@ export default function ProductosPage() {
                 <label htmlFor="aceptaAdicionales" className="text-gray-400 text-sm">
                   Acepta adicionales en el POS <span className="text-gray-600">(desmárcalo en bebidas)</span>
                 </label>
-              </div>
+              </div>}
 
               {/* Receta / ingredientes */}
-              <div className="border-t border-gray-800 pt-4">
+              {esRestaurante && <div className="border-t border-gray-800 pt-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm text-gray-400">Receta (ingredientes)</label>
                   <button
@@ -711,10 +729,10 @@ export default function ProductosPage() {
                     ))}
                   </div>
                 )}
-              </div>
+              </div>}
 
               {/* Adicionales disponibles para este producto */}
-              <div className="border-t border-gray-800 pt-4">
+              {esRestaurante && <div className="border-t border-gray-800 pt-4">
                 <div className="flex items-center justify-between mb-2">
                   <label className="block text-sm text-gray-400">Adicionales disponibles en el POS</label>
                   <button
@@ -755,7 +773,7 @@ export default function ProductosPage() {
                     ))}
                   </div>
                 )}
-              </div>
+              </div>}
             </div>
 
             <div className="flex gap-3 mt-6">

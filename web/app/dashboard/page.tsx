@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import { ShoppingBag, DollarSign, TrendingUp, Clock } from 'lucide-react';
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
+import RetailDashboard from './RetailDashboard';
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -25,7 +26,7 @@ interface Pedido {
 
 const COLORES = ['#FF6B35', '#f7931e', '#3b82f6', '#10b981', '#a855f7', '#ec4899', '#facc15'];
 
-export default function DashboardPage() {
+function RestauranteDashboard() {
   const router = useRouter();
   const { usuario } = useAuthStore();
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
@@ -577,4 +578,9 @@ export default function DashboardPage() {
     </div>
     </AuthGuard>
   );
+}
+
+export default function DashboardPage() {
+  const tipoNegocio = useAuthStore((state) => state.usuario?.tipoNegocio);
+  return tipoNegocio && tipoNegocio !== 'RESTAURANTE' ? <RetailDashboard /> : <RestauranteDashboard />;
 }

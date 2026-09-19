@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import api from '@/lib/api';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import { ShoppingCart, LayoutDashboard, Package, Boxes, Users, DollarSign, BarChart3, Settings, LogOut, UtensilsCrossed } from 'lucide-react';
+import { ShoppingCart, LayoutDashboard, Package, Boxes, Users, DollarSign, BarChart3, Settings, LogOut, UtensilsCrossed, Moon, Sun } from 'lucide-react';
+import { useTema } from '@/components/ThemeProvider';
 
 const ITEMS = [
   { href: '/pos', label: 'POS', icon: ShoppingCart },
@@ -22,25 +23,35 @@ const ITEMS = [
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
-  const { usuario, logout } = useAuthStore();
+  const { usuario, logout, setTipoNegocio } = useAuthStore();
+  const { tema, cambiarTema } = useTema();
   const [pendientesWeb, setPendientesWeb] = useState(0);
   useEffect(() => {
+    if (!usuario?.empresaId) return;
+    api.get('/empresa').then((respuesta) => {
+      if (respuesta.data?.tipoNegocio && respuesta.data.tipoNegocio !== usuario.tipoNegocio) setTipoNegocio(respuesta.data.tipoNegocio);
+    }).catch(() => undefined);
+  }, [usuario?.empresaId, usuario?.tipoNegocio, setTipoNegocio]);
+  useEffect(() => {
     if (!['CAJERO','ADMIN_EMPRESA','GERENTE'].includes(usuario?.rol || '')) return;
+    if (usuario?.tipoNegocio && usuario.tipoNegocio !== 'RESTAURANTE') return;
     let activo = true;
     const cargar = () => api.get('/tienda-admin/resumen').then(r=>{if(activo)setPendientesWeb(r.data.pendientes);}).catch(()=>{});
     void cargar(); const timer = setInterval(cargar,5000);
     return () => { activo=false; clearInterval(timer); };
-  },[usuario?.rol,usuario?.empresaId]);
+  },[usuario?.rol,usuario?.empresaId,usuario?.tipoNegocio]);
   const esAdminOGerente = usuario?.rol === 'ADMIN_EMPRESA' || usuario?.rol === 'GERENTE';
+  const esRestaurante = !usuario?.tipoNegocio || usuario.tipoNegocio === 'RESTAURANTE';
   const itemsVisibles = ITEMS.filter((item) => {
+    if (!esRestaurante && ['/domicilios', '/mi-tienda', '/fidelizacion'].includes(item.href)) return false;
     if (['/mi-tienda','/fidelizacion'].includes(item.href)) return usuario?.rol === 'ADMIN_EMPRESA';
     if (item.href === '/domicilios') return ['ADMIN_EMPRESA','GERENTE','CAJERO','DOMICILIARIO'].includes(usuario?.rol || '');
     if (usuario?.rol === 'DOMICILIARIO') return item.href === '/domicilios';
-    if (usuario?.rol === 'CAJERO') return ['/pos','/domicilios'].includes(item.href);
+    if (usuario?.rol === 'CAJERO') return esRestaurante ? ['/pos','/domicilios'].includes(item.href) : item.href === '/pos';
     if (esAdminOGerente) return true;
     return usuario?.permisos?.[item.href.replace('/', '')] !== false;
   });
-  if (esAdminOGerente && usuario?.consumoEmpleadosHabilitado) {
+  if (esRestaurante && esAdminOGerente && usuario?.consumoEmpleadosHabilitado) {
     itemsVisibles.push({ href: '/consumo-empleados', label: 'Consumo staff', icon: UtensilsCrossed });
   }
 
@@ -58,6 +69,7 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-2 md:gap-3 flex-shrink-0">
+          <button type="button" onClick={cambiarTema} title={`Cambiar a tema ${tema === 'oscuro' ? 'claro' : 'oscuro'}`} aria-label={`Cambiar a tema ${tema === 'oscuro' ? 'claro' : 'oscuro'}`} className="rounded-lg border border-gray-700 p-2 text-gray-300 hover:text-orange-500">{tema === 'oscuro' ? <Sun size={17} /> : <Moon size={17} />}</button>
           <span className="text-gray-400 text-xs md:text-sm max-w-[120px] md:max-w-[180px] truncate hidden sm:block">
             {usuario?.nombre || 'Administrador'}
           </span>

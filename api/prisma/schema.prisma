@@ -23,6 +23,13 @@ enum ModoPreparacion {
   COMANDAS
 }
 
+enum TipoNegocio {
+  RESTAURANTE
+  SUPERMERCADO
+  TIENDA
+  COMERCIO
+}
+
 model Empresa {
   id            Int       @id @default(autoincrement())
   nombre        String
@@ -32,6 +39,7 @@ model Empresa {
   direccion     String?
   logo          String?
   activo        Boolean   @default(true)
+  tipoNegocio   TipoNegocio @default(RESTAURANTE)
   plan          PlanEmpresa @default(BASICO)
   permisos      Json      @default("{}")
   modoPreparacion ModoPreparacion @default(KDS)
@@ -150,6 +158,10 @@ model Producto {
   nombre        String
   descripcion   String?
   precio        Decimal  @db.Decimal(10, 2)
+  codigoBarras  String?
+  controlaStock Boolean  @default(false)
+  stockActual   Int      @default(0)
+  stockMinimo   Int      @default(0)
   imagen        String?
   disponible    Boolean  @default(true)
   aceptaAdicionales Boolean @default(true)
@@ -164,6 +176,8 @@ model Producto {
   preparaciones       ProductoPreparacion[]
   detallesPedido      DetallePedido[]
   consumoEmpleadoItems ConsumoEmpleadoItem[]
+
+  @@unique([empresaId, codigoBarras])
 
   @@map("productos")
 }

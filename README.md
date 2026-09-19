@@ -1,4 +1,4 @@
-# PowerPOS Pioneers 🍔
+# PowerPOS Pioneers
 
 ## Documentación del proyecto
 
@@ -6,11 +6,20 @@ Consulta el [expediente académico y técnico](docs/README.md) y el [paquete de 
 
 La documentación describe el código revisado el 15 de septiembre de 2026 y distingue funciones observadas, limitaciones y pruebas pendientes.
 
-Sistema de gestión gastronómica empresarial moderno, escalable y en tiempo real.
+Sistema POS multiempresa con flujos de restaurante y comercio.
 
 ## ¿Qué es PowerPOS Pioneers?
 
-Plataforma SaaS multiempresa diseñada para restaurantes, food trucks, cafeterías, panaderías y cualquier negocio gastronómico. Permite controlar completamente la operación desde cualquier lugar en tiempo real.
+El super admin configura cada empresa como restaurante, supermercado, tienda u otro comercio. Las empresas existentes conservan el tipo restaurante mediante el valor predeterminado de la migración.
+
+## Tipos de negocio y apariencia
+
+- **Restaurante:** conserva el POS con recetas, adicionales, comandas y cocina KDS.
+- **Supermercado, tienda y comercio:** usan un POS comercial con búsqueda por nombre o código de barras, carrito, caja, pago, recibo y existencias por producto. Las ventas quedan entregadas al cobrarse y no pasan por cocina.
+- **Super admin:** elige el tipo al crear la empresa y puede cambiarlo en su configuración. Al cambiar una empresa existente a comercio, revisa los códigos y existencias de sus productos antes de vender.
+- **Tema:** el botón de sol/luna en la barra superior permite alternar claro y oscuro; la preferencia se guarda en el navegador.
+
+La migración `20260918090000_tipos_negocio_stock_retail` añade el tipo de negocio y los campos de comercio sin modificar pedidos ni recetas existentes. El control de existencias es por empresa y por unidades enteras. Devoluciones, inventario por sucursal, venta por peso e integración con escáneres especiales aún requieren desarrollo; los lectores que escriben el código como teclado sí funcionan. La facturación electrónica no está implementada.
 
 ## Módulos implementados
 

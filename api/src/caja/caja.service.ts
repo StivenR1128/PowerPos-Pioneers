@@ -71,7 +71,7 @@ export class CajaService {
     const cajasAbiertas = await this.prisma.caja.findMany({
       where: { estado: 'ABIERTA' },
       include: {
-        sucursal: { select: { nombre: true, empresaId: true } },
+        sucursal: { select: { nombre: true, empresaId: true, empresa: { select: { tipoNegocio: true } } } },
         usuario: { select: { nombre: true } },
         pedidos: { where: { estado: { not: 'ANULADO' } } },
       },
@@ -80,6 +80,7 @@ export class CajaService {
     const ahora = new Date();
 
     for (const caja of cajasAbiertas) {
+      if (caja.sucursal.empresa.tipoNegocio !== 'RESTAURANTE') continue;
       const horario = this.obtenerHorarioTurno(ahora);
       if (!horario.activo) {
         await this.cerrarCaja(caja.id, { montoFinal: this.calcularMontoEsperado(caja) }, caja.usuarioId, true);

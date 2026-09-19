@@ -7,6 +7,7 @@ import { ShoppingCart, Plus, Minus, Trash2, User, X, Search, Keyboard, LayoutGri
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
 import TouchKeyboard from '@/components/TouchKeyboard';
+import RetailPOS from './RetailPOS';
 
 interface AdicionalProducto {
   id: number;
@@ -49,7 +50,7 @@ interface ItemCarrito {
   observacion: string;
 }
 
-export default function POSPage() {
+function RestaurantePOS() {
   const { usuario } = useAuthStore();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -1299,4 +1300,9 @@ export default function POSPage() {
       </div>
     </AuthGuard>
   );
+}
+
+export default function POSPage() {
+  const tipoNegocio = useAuthStore((state) => state.usuario?.tipoNegocio);
+  return tipoNegocio && tipoNegocio !== 'RESTAURANTE' ? <RetailPOS /> : <RestaurantePOS />;
 }

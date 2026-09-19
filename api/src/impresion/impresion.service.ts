@@ -163,6 +163,7 @@ export class ImpresionService {
       where: { id: empresaId },
       select: {
         nombre: true,
+        tipoNegocio: true,
         nit: true,
         telefono: true,
         direccion: true,
@@ -341,7 +342,7 @@ export class ImpresionService {
     lineas.push(
       `${this.centrarTexto(nombre, 32)}\n`,
       `${this.centrarTexto('RECIBO DE PAGO', 32)}\n`,
-      `${this.centrarTexto(`PEDIDO ${pedido.numero}`, 32)}\n`,
+      `${this.centrarTexto(`${empresa?.tipoNegocio === 'RESTAURANTE' ? 'PEDIDO' : 'VENTA'} ${pedido.numero}`, 32)}\n`,
       '--------------------------------\n',
       `${this.recortarTexto(nit, 32)}\n`,
       `${this.recortarTexto(direccion, 32)}\n`,
@@ -354,7 +355,7 @@ export class ImpresionService {
 
     let total = Number(pedido.total ?? 0);
     for (const detalle of pedido.detalles || []) {
-      const subtotal = Number(detalle.precio ?? 0) * Number(detalle.cantidad ?? 1);
+      const subtotal = Number(detalle.subtotal ?? (Number(detalle.precioUnitario ?? detalle.precio ?? 0) * Number(detalle.cantidad ?? 1)));
       lineas.push(
         `${detalle.cantidad}x ${detalle.producto?.nombre || 'Producto'} ${subtotal.toFixed(0)}\n`,
       );

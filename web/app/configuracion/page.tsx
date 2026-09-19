@@ -314,6 +314,10 @@ export default function ConfiguracionPage() {
                       <span className="text-white">{empresa?.nombre}</span>
                     </div>
                     <div className="flex justify-between text-sm">
+                      <span className="text-gray-400">Tipo de negocio</span>
+                      <span className="text-white">{{ RESTAURANTE: 'Restaurante o bar', SUPERMERCADO: 'Supermercado', TIENDA: 'Tienda', COMERCIO: 'Comercio' }[empresa?.tipoNegocio as 'RESTAURANTE' | 'SUPERMERCADO' | 'TIENDA' | 'COMERCIO'] || 'Restaurante o bar'}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
                       <span className="text-gray-400">NIT</span>
                       <span className="text-white">{empresa?.nit}</span>
                     </div>
