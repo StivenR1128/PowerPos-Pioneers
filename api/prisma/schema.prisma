@@ -63,6 +63,7 @@ model Empresa {
   preparaciones Preparacion[]
   lotesPreparacion LotePreparacion[]
   consumosEmpleados ConsumoEmpleado[]
+  ingredientes Ingrediente[]
 
   @@map("empresas")
 }
@@ -158,6 +159,7 @@ model Producto {
   nombre        String
   descripcion   String?
   precio        Decimal  @db.Decimal(10, 2)
+  costo         Decimal? @db.Decimal(10, 2)
   codigoBarras  String?
   controlaStock Boolean  @default(false)
   stockActual   Int      @default(0)
@@ -176,6 +178,7 @@ model Producto {
   preparaciones       ProductoPreparacion[]
   detallesPedido      DetallePedido[]
   consumoEmpleadoItems ConsumoEmpleadoItem[]
+  movimientosInventario MovimientoInventario[]
 
   @@unique([empresaId, codigoBarras])
 
@@ -184,6 +187,7 @@ model Producto {
 
 model Ingrediente {
   id               Int      @id @default(autoincrement())
+  empresaId        Int
   nombre           String
   unidad           String
   unidadCompra     String?
@@ -199,13 +203,17 @@ model Ingrediente {
   adicionales               Adicional[]
   preparacionIngredientes   PreparacionIngrediente[]
   lotePreparacionIngredientes LotePreparacionIngrediente[]
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+
+  @@index([empresaId, activo])
 
   @@map("ingredientes")
 }
 
 model MovimientoInventario {
   id              Int      @id @default(autoincrement())
-  ingredienteId   Int
+  ingredienteId   Int?
+  productoId      Int?
   usuarioId       Int
   tipo            String
   cantidadMovida  Decimal  @db.Decimal(10, 3)
@@ -216,9 +224,11 @@ model MovimientoInventario {
   descripcion     String?
   creadoEn        DateTime @default(now())
 
-  ingrediente Ingrediente @relation(fields: [ingredienteId], references: [id])
-  usuario     Usuario     @relation(fields: [usuarioId], references: [id])
+  ingrediente Ingrediente? @relation(fields: [ingredienteId], references: [id])
+  producto    Producto?    @relation(fields: [productoId], references: [id])
+  usuario     Usuario      @relation(fields: [usuarioId], references: [id])
 
+  @@index([productoId, creadoEn])
   @@map("movimientos_inventario")
 }
 

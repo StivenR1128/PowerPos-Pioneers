@@ -99,6 +99,7 @@ async function main() {
   for (const ing of ingredientesHamburguesa) {
     const ingrediente = await prisma.ingrediente.create({
       data: {
+        empresaId: empresa.id,
         nombre: ing.nombre,
         unidad: ing.unidad,
         stock: ing.stock,
@@ -115,10 +116,10 @@ async function main() {
 
   // Adicionales (extras con costo)
   const quesoExtra = await prisma.ingrediente.create({
-    data: { nombre: 'Queso extra', unidad: 'lonchas', stock: 400, stockMinimo: 60, costoUnitario: 350 },
+    data: { empresaId: empresa.id, nombre: 'Queso extra', unidad: 'lonchas', stock: 400, stockMinimo: 60, costoUnitario: 350 },
   });
   const tocinetaExtra = await prisma.ingrediente.create({
-    data: { nombre: 'Tocineta', unidad: 'gramos', stock: 2000, stockMinimo: 300, costoUnitario: 25 },
+    data: { empresaId: empresa.id, nombre: 'Tocineta', unidad: 'gramos', stock: 2000, stockMinimo: 300, costoUnitario: 25 },
   });
 
   const adExtraQueso = await prisma.adicional.create({
@@ -156,6 +157,7 @@ async function main() {
   for (const ing of ingredientesPerro) {
     const ingrediente = await prisma.ingrediente.create({
       data: {
+        empresaId: empresa.id,
         nombre: ing.nombre,
         unidad: ing.unidad,
         stock: ing.stock,

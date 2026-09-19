@@ -21,6 +21,8 @@ El super admin configura cada empresa como restaurante, supermercado, tienda u o
 
 La migración `20260918090000_tipos_negocio_stock_retail` añade el tipo de negocio y los campos de comercio sin modificar pedidos ni recetas existentes. El control de existencias es por empresa y por unidades enteras. Devoluciones, inventario por sucursal, venta por peso e integración con escáneres especiales aún requieren desarrollo; los lectores que escriben el código como teclado sí funcionan. La facturación electrónica no está implementada.
 
+La migración `20260919100000_ingredientes_por_empresa` asigna cada ingrediente a una empresa. Si detecta que un ingrediente está compartido entre empresas o no puede identificar su dueño en una base con varias empresas, se detiene para evitar una asignación incorrecta. La API filtra inventario, ventas, cajas y usuarios usando la empresa del usuario autenticado, y valida las referencias entre registros antes de guardarlas.
+
 ## Módulos implementados
 
 - ✅ Sistema POS Web — ventas rápidas con exclusiones de ingredientes

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -6,6 +6,12 @@ export class FinancieroService {
   constructor(private prisma: PrismaService) {}
 
   async registrarMovimiento(datos: any, usuarioId: number, empresaId: number, sucursalId: number) {
+    const sucursal = await this.prisma.sucursal.findFirst({ where: { id: sucursalId, empresaId, activo: true }, select: { id: true } });
+    if (!sucursal) throw new BadRequestException('La sucursal no pertenece a esta empresa');
+    if (datos.pedidoId) {
+      const pedido = await this.prisma.pedido.findFirst({ where: { id: Number(datos.pedidoId), sucursal: { empresaId } }, select: { id: true } });
+      if (!pedido) throw new BadRequestException('La venta no pertenece a esta empresa');
+    }
     return this.prisma.movimientoFinanciero.create({
       data: {
         empresaId,

@@ -4,8 +4,10 @@ import api from '@/lib/api';
 import { Package, AlertTriangle, Plus, Minus, RefreshCw, History } from 'lucide-react';
 import AuthGuard from '@/components/AuthGuard';
 import Navbar from '@/components/Navbar';
+import { useAuthStore } from '@/store/authStore';
+import RetailInventario from './RetailInventario';
 
-export default function InventarioPage() {
+function RestauranteInventario() {
   const [ingredientes, setIngredientes] = useState<any[]>([]);
   const [preparaciones, setPreparaciones] = useState<any[]>([]);
   const [modal, setModal] = useState<any>(null);
@@ -790,4 +792,9 @@ export default function InventarioPage() {
       </div>
     </AuthGuard>
   );
+}
+
+export default function InventarioPage() {
+  const tipoNegocio = useAuthStore((state) => state.usuario?.tipoNegocio);
+  return tipoNegocio && tipoNegocio !== 'RESTAURANTE' ? <RetailInventario /> : <RestauranteInventario />;
 }

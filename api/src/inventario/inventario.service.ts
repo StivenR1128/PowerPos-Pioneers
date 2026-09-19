@@ -9,9 +9,9 @@ export class InventarioService {
     private notificaciones: NotificacionesService,
   ) {}
 
-  async listarIngredientes(incluirInactivos = false) {
+  async listarIngredientes(empresaId: number, incluirInactivos = false) {
     const ingredientes = await this.prisma.ingrediente.findMany({
-      where: incluirInactivos ? {} : { activo: true },
+      where: { empresaId, ...(!incluirInactivos ? { activo: true } : {}) },
       include: {
         productos: { include: { producto: true } },
         movimientos: {
@@ -30,12 +30,13 @@ export class InventarioService {
     }));
   }
 
-  async crearIngrediente(datos: any, usuarioId: number) {
+  async crearIngrediente(datos: any, usuarioId: number, empresaId: number) {
     const stockInicial = datos.stock || 0;
     const stockMinimo = datos.stockMinimo || 0;
 
     const ingrediente = await this.prisma.ingrediente.create({
       data: {
+        empresaId,
         nombre: datos.nombre,
         unidad: datos.unidad,
         stock: stockInicial,
@@ -64,15 +65,15 @@ export class InventarioService {
         mensaje: `⚠️ ${ingrediente.nombre} fue creado con stock bajo: ${stockInicial} ${ingrediente.unidad} (mínimo: ${stockMinimo})`,
         empresa: 'PowerPOS',
         sucursal: 'Sucursal Principal',
-        empresaId: 1,
+        empresaId,
       });
     }
 
     return ingrediente;
   }
 
-  async actualizarIngrediente(id: number, datos: any) {
-    const ingrediente = await this.prisma.ingrediente.findUnique({ where: { id } });
+  async actualizarIngrediente(id: number, datos: any, empresaId: number) {
+    const ingrediente = await this.prisma.ingrediente.findFirst({ where: { id, empresaId } });
     if (!ingrediente) throw new NotFoundException('Ingrediente no encontrado');
 
     return this.prisma.ingrediente.update({
@@ -88,8 +89,8 @@ export class InventarioService {
     });
   }
 
-  async toggleActivo(id: number) {
-    const ingrediente = await this.prisma.ingrediente.findUnique({ where: { id } });
+  async toggleActivo(id: number, empresaId: number) {
+    const ingrediente = await this.prisma.ingrediente.findFirst({ where: { id, empresaId } });
     if (!ingrediente) throw new NotFoundException('Ingrediente no encontrado');
 
     return this.prisma.ingrediente.update({
@@ -98,9 +99,9 @@ export class InventarioService {
     });
   }
 
-  async ajustarStock(ingredienteId: number, datos: any, usuarioId: number) {
-    const ingrediente = await this.prisma.ingrediente.findUnique({
-      where: { id: ingredienteId },
+  async ajustarStock(ingredienteId: number, datos: any, usuarioId: number, empresaId: number) {
+    const ingrediente = await this.prisma.ingrediente.findFirst({
+      where: { id: ingredienteId, empresaId },
     });
 
     if (!ingrediente) throw new NotFoundException('Ingrediente no encontrado');
@@ -148,14 +149,16 @@ export class InventarioService {
         mensaje: `⚠️ ${ingrediente.nombre} tiene stock bajo: ${stockNuevo} ${ingrediente.unidad} (mínimo: ${ingrediente.stockMinimo})`,
         empresa: 'PowerPOS',
         sucursal: 'Sucursal Principal',
-        empresaId: 1,
+        empresaId,
       });
     }
 
     return { ...actualizado, stockAnterior, stockNuevo, cantidadMovida: cantidadReal, factorAplicado };
   }
 
-  async obtenerHistorial(ingredienteId: number) {
+  async obtenerHistorial(ingredienteId: number, empresaId: number) {
+    const ingrediente = await this.prisma.ingrediente.findFirst({ where: { id: ingredienteId, empresaId } });
+    if (!ingrediente) throw new NotFoundException('Ingrediente no encontrado');
     return this.prisma.movimientoInventario.findMany({
       where: { ingredienteId },
       include: { usuario: { select: { nombre: true } } },
@@ -164,9 +167,9 @@ export class InventarioService {
     });
   }
 
-  async obtenerAlertas() {
+  async obtenerAlertas(empresaId: number) {
     const ingredientes = await this.prisma.ingrediente.findMany({
-      where: { activo: true },
+      where: { empresaId, activo: true },
     });
 
     return ingredientes

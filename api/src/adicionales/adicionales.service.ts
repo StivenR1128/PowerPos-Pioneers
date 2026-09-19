@@ -22,7 +22,7 @@ export class AdicionalesService {
   }
 
   async crear(datos: any, empresaId: number) {
-    const ingredienteId = await this.validarIngrediente(datos.ingredienteId);
+    const ingredienteId = await this.validarIngrediente(datos.ingredienteId, empresaId);
 
     return this.prisma.adicional.create({
       data: {
@@ -41,7 +41,7 @@ export class AdicionalesService {
     await this.obtener(id, empresaId);
     const tieneIngrediente = datos.ingredienteId !== undefined;
     const ingredienteId = tieneIngrediente
-      ? await this.validarIngrediente(datos.ingredienteId)
+      ? await this.validarIngrediente(datos.ingredienteId, empresaId)
       : undefined;
 
     return this.prisma.adicional.update({
@@ -79,10 +79,11 @@ export class AdicionalesService {
 
   private async validarIngrediente(
     ingredienteId?: number | null,
+    empresaId?: number,
   ): Promise<number | null> {
     if (!ingredienteId) return null;
-    const ingrediente = await this.prisma.ingrediente.findUnique({
-      where: { id: ingredienteId },
+    const ingrediente = await this.prisma.ingrediente.findFirst({
+      where: { id: ingredienteId, empresaId },
     });
     if (!ingrediente)
       throw new BadRequestException('Ingrediente no encontrado');

@@ -39,6 +39,7 @@ interface Producto {
   nombre: string;
   descripcion: string;
   precio: string;
+  costo?: string | null;
   disponible: boolean;
   aceptaAdicionales: boolean;
   activo: boolean;
@@ -51,7 +52,7 @@ interface Producto {
   adicionales: { adicional: { id: number; nombre: string; precio: string } }[];
 }
 
-const ICONOS_CATEGORIA = [
+const ICONOS_CATEGORIA_RESTAURANTE = [
   '🥓', '🌭', '🍔', '🍟', '🍕', '🌮', '🥪', '🍗', '🍖', '🥖', '🥯',
   '🍤', '🍣', '🍜', '🍝', '🍲', '🥗', '🥟', '🍛', '🍱', '🍙',
   '🥤', '☕', '🧃', '🍹', '🍋', '🍉', '🍑', '🍓', '🍰', '🧁',
@@ -60,9 +61,20 @@ const ICONOS_CATEGORIA = [
   '🌶️', '🥙', '🥩', '🍽️', '🍟', '🍔', '☕', '🥤', '🌮', '🍖',
 ].filter((icono, indice, arreglo) => arreglo.indexOf(icono) === indice);
 
+const ICONOS_CATEGORIA_COMERCIO = [
+  '🛒', '📦', '🥫', '🍞', '🥛', '🧀', '🥚', '🍚', '🍬', '🍫',
+  '🧃', '🥤', '☕', '🍺', '🍷', '🧊', '🧴', '🧻', '🧹', '🧺',
+  '🧼', '🪣', '🧽', '🪥', '💄', '💊', '🩹', '🧷', '🔌', '🔋',
+  '💡', '📱', '💻', '🔧', '🔩', '🪛', '🧰', '👕', '👟', '🧦',
+  '👜', '🧢', '🍼', '🐾', '✏️', '📓', '🎁', '🧸', '🗞️', '🔑',
+  '🕯️', '🚬', '🧵', '🪒', '🎈', '🧊',
+].filter((icono, indice, arreglo) => arreglo.indexOf(icono) === indice);
+
 export default function ProductosPage() {
   const tipoNegocio = useAuthStore((state) => state.usuario?.tipoNegocio);
   const esRestaurante = !tipoNegocio || tipoNegocio === 'RESTAURANTE';
+  const iconosCategoria = esRestaurante ? ICONOS_CATEGORIA_RESTAURANTE : ICONOS_CATEGORIA_COMERCIO;
+  const iconoCategoriaDefecto = esRestaurante ? '🍽️' : '📦';
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [ingredientesDisponibles, setIngredientesDisponibles] = useState<any[]>([]);
@@ -78,6 +90,7 @@ export default function ProductosPage() {
     nombre: '',
     descripcion: '',
     precio: '',
+    costo: '',
     categoriaId: '',
     disponible: true,
     aceptaAdicionales: true,
@@ -88,7 +101,7 @@ export default function ProductosPage() {
   });
   const [recetaTemp, setRecetaTemp] = useState<IngredienteReceta[]>([]);
   const [adicionalIdsTemp, setAdicionalIdsTemp] = useState<number[]>([]);
-  const [formCategoria, setFormCategoria] = useState({ nombre: '', icono: '🍽️', color: '#FF6B35', parentId: '' });
+  const [formCategoria, setFormCategoria] = useState({ nombre: '', icono: iconoCategoriaDefecto, color: '#FF6B35', parentId: '' });
   const [formAdicional, setFormAdicional] = useState<{ id: number | null; nombre: string; precio: string; ingredienteId: string; cantidad: string }>({
     id: null,
     nombre: '',
@@ -127,6 +140,7 @@ export default function ProductosPage() {
         nombre: producto.nombre,
         descripcion: producto.descripcion || '',
         precio: producto.precio,
+        costo: producto.costo ? String(producto.costo) : '',
         categoriaId: String(producto.categoria.id),
         disponible: producto.disponible,
         aceptaAdicionales: producto.aceptaAdicionales ?? true,
@@ -146,7 +160,7 @@ export default function ProductosPage() {
       setAdicionalIdsTemp((producto.adicionales || []).map((pa) => pa.adicional.id));
     } else {
       setEditando(null);
-      setForm({ nombre: '', descripcion: '', precio: '', categoriaId: '', disponible: true, aceptaAdicionales: true, codigoBarras: '', controlaStock: !esRestaurante, stockActual: '0', stockMinimo: '0' });
+      setForm({ nombre: '', descripcion: '', precio: '', costo: '', categoriaId: '', disponible: true, aceptaAdicionales: true, codigoBarras: '', controlaStock: !esRestaurante, stockActual: '0', stockMinimo: '0' });
       setRecetaTemp([]);
       setAdicionalIdsTemp([]);
     }
@@ -252,7 +266,7 @@ export default function ProductosPage() {
         disponible: form.disponible,
         aceptaAdicionales: form.aceptaAdicionales,
         adicionalIds: adicionalIdsTemp,
-        ...(!esRestaurante ? { codigoBarras: form.codigoBarras, controlaStock: form.controlaStock, stockActual: Number(form.stockActual), stockMinimo: Number(form.stockMinimo), aceptaAdicionales: false } : {}),
+        ...(!esRestaurante ? { costo: form.costo ? Number(form.costo) : null, codigoBarras: form.codigoBarras, controlaStock: form.controlaStock, stockActual: Number(form.stockActual), stockMinimo: Number(form.stockMinimo), aceptaAdicionales: false } : {}),
       };
       if (ingredientesPayload.length > 0) {
         payload.ingredientes = ingredientesPayload;
@@ -294,13 +308,13 @@ export default function ProductosPage() {
       setEditandoCategoria(categoria);
       setFormCategoria({
         nombre: categoria.nombre,
-        icono: categoria.icono || '🍽️',
+        icono: categoria.icono || iconoCategoriaDefecto,
         color: categoria.color || '#FF6B35',
         parentId: categoria.parentId ? String(categoria.parentId) : '',
       });
     } else {
       setEditandoCategoria(null);
-      setFormCategoria({ nombre: '', icono: '🍽️', color: '#FF6B35', parentId: '' });
+      setFormCategoria({ nombre: '', icono: iconoCategoriaDefecto, color: '#FF6B35', parentId: '' });
     }
     setSelectorIconoAbierto(false);
     setModalCategoria(true);
@@ -317,7 +331,7 @@ export default function ProductosPage() {
       }
       setModalCategoria(false);
       setEditandoCategoria(null);
-      setFormCategoria({ nombre: '', icono: '🍽️', color: '#FF6B35', parentId: '' });
+      setFormCategoria({ nombre: '', icono: iconoCategoriaDefecto, color: '#FF6B35', parentId: '' });
       cargarDatos();
     } catch (e) {
       console.error(e);
@@ -474,6 +488,11 @@ export default function ProductosPage() {
                     <span className="text-orange-500 font-bold text-sm">
                       ${Number(producto.precio).toLocaleString()}
                     </span>
+                    {!esRestaurante && producto.costo && Number(producto.costo) > 0 && (
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        Costo ${Number(producto.costo).toLocaleString()} · Ganancia {(((Number(producto.precio) - Number(producto.costo)) / Number(producto.precio)) * 100).toFixed(0)}%
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     <button
@@ -617,7 +636,34 @@ export default function ProductosPage() {
                 </div>
               </div>
 
-              {!esRestaurante && <div className="space-y-3 rounded-xl border border-gray-800 p-3"><label className="block text-sm text-gray-400">Código de barras o SKU<input value={form.codigoBarras} onChange={(e) => setForm({ ...form, codigoBarras: e.target.value })} placeholder="Escanea o escribe el código" className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white" /></label><label className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={form.controlaStock} onChange={(e) => setForm({ ...form, controlaStock: e.target.checked })} /> Controlar existencias</label><div className="grid grid-cols-2 gap-3"><label className="text-sm text-gray-400">Existencias actuales<input type="number" min="0" step="1" value={form.stockActual} onChange={(e) => setForm({ ...form, stockActual: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white" /></label><label className="text-sm text-gray-400">Mínimo para alerta<input type="number" min="0" step="1" value={form.stockMinimo} onChange={(e) => setForm({ ...form, stockMinimo: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white" /></label></div><p className="text-xs text-gray-500">Las existencias se reducen al registrar la venta. Edita este valor al recibir mercancía.</p></div>}
+              {!esRestaurante && (() => {
+                const precioNum = Number(form.precio) || 0;
+                const costoNum = Number(form.costo) || 0;
+                const ganancia = precioNum - costoNum;
+                const margen = costoNum > 0 && precioNum > 0 ? (ganancia / precioNum) * 100 : null;
+                return (
+                  <div className="space-y-3 rounded-xl border border-gray-800 p-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="text-sm text-gray-400">Costo (lo que te vale)
+                        <input type="number" min="0" step="1" value={form.costo} onChange={(e) => setForm({ ...form, costo: e.target.value })} placeholder="0" className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white" />
+                      </label>
+                      <div className="text-sm text-gray-400">
+                        Ganancia por unidad
+                        <div className={`mt-1 w-full rounded-lg border px-3 py-2 font-semibold ${costoNum > 0 && precioNum > 0 ? (ganancia >= 0 ? 'border-green-500/30 bg-green-500/10 text-green-400' : 'border-red-500/30 bg-red-500/10 text-red-400') : 'border-gray-700 bg-gray-800/50 text-gray-500'}`}>
+                          {costoNum > 0 && precioNum > 0 ? `$${ganancia.toLocaleString()} · ${margen!.toFixed(0)}%` : 'Ingresa costo y precio'}
+                        </div>
+                      </div>
+                    </div>
+                    <label className="block text-sm text-gray-400">Código de barras o SKU<input value={form.codigoBarras} onChange={(e) => setForm({ ...form, codigoBarras: e.target.value })} placeholder="Escanea o escribe el código" className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white" /></label>
+                    <label className="flex items-center gap-2 text-sm text-gray-300"><input type="checkbox" checked={form.controlaStock} onChange={(e) => setForm({ ...form, controlaStock: e.target.checked })} /> Controlar existencias</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="text-sm text-gray-400">Existencias actuales<input type="number" min="0" step="1" value={form.stockActual} onChange={(e) => setForm({ ...form, stockActual: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white" /></label>
+                      <label className="text-sm text-gray-400">Mínimo para alerta<input type="number" min="0" step="1" value={form.stockMinimo} onChange={(e) => setForm({ ...form, stockMinimo: e.target.value })} className="mt-1 w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-white" /></label>
+                    </div>
+                    <p className="text-xs text-gray-500">Las existencias se reducen al registrar la venta. Edita este valor al recibir mercancía.</p>
+                  </div>
+                );
+              })()}
 
               <div className="flex items-center gap-3">
                 <input
@@ -850,7 +896,7 @@ export default function ProductosPage() {
                     {selectorIconoAbierto && (
                       <div className="absolute z-20 mt-2 w-full rounded-xl border border-gray-700 bg-gray-900 p-2 shadow-2xl">
                         <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1">
-                          {ICONOS_CATEGORIA.map((icono, index) => (
+                          {iconosCategoria.map((icono, index) => (
                             <button
                               key={`${icono}-${index}`}
                               type="button"

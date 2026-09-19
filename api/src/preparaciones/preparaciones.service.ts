@@ -5,6 +5,13 @@ import { PrismaService } from '../prisma/prisma.service';
 export class PreparacionesService {
   constructor(private prisma: PrismaService) {}
 
+  private async validarIngredientes(ingredientes: any[], empresaId: number) {
+    for (const ing of ingredientes) {
+      const ingrediente = await this.prisma.ingrediente.findFirst({ where: { id: Number(ing.ingredienteId), empresaId, activo: true }, select: { id: true } });
+      if (!ingrediente) throw new BadRequestException('El ingrediente no pertenece a esta empresa');
+    }
+  }
+
   async listar(empresaId: number) {
     const preparaciones = await this.prisma.preparacion.findMany({
       where: { empresaId, activo: true },
@@ -40,6 +47,7 @@ export class PreparacionesService {
 
   async crear(datos: any, empresaId: number, usuarioId: number) {
     const { ingredientes = [], ...rest } = datos;
+    await this.validarIngredientes(ingredientes, empresaId);
 
     const preparacion = await this.prisma.preparacion.create({
       data: {
@@ -78,6 +86,7 @@ export class PreparacionesService {
     if (!prep) throw new NotFoundException('Preparación no encontrada');
 
     const { ingredientes = [], ...rest } = datos;
+    await this.validarIngredientes(ingredientes, empresaId);
 
     if (Array.isArray(ingredientes)) {
       await this.prisma.preparacionIngrediente.deleteMany({ where: { preparacionId: id } });
@@ -136,6 +145,7 @@ export class PreparacionesService {
     });
 
     if (!preparacion) throw new NotFoundException('Preparación no encontrada');
+    await this.validarIngredientes(datos.ingredientes || [], empresaId);
 
     const porcionesTotales = Number(datos.porcionesTotales ?? 0);
     const cantidadProducida = Number(datos.cantidadProducida ?? 0);
@@ -173,7 +183,7 @@ export class PreparacionesService {
 
     for (const ing of datos.ingredientes || []) {
       if (!ing.ingredienteId) continue;
-      const ingrediente = await this.prisma.ingrediente.findUnique({ where: { id: Number(ing.ingredienteId) } });
+      const ingrediente = await this.prisma.ingrediente.findFirst({ where: { id: Number(ing.ingredienteId), empresaId } });
       if (!ingrediente) continue;
       await this.prisma.ingrediente.update({
         where: { id: ingrediente.id },

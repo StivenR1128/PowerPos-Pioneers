@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 
@@ -31,6 +31,11 @@ export class UsuariosService {
   constructor(private prisma: PrismaService) {}
 
   async crear(datos: any, empresaId: number) {
+    if (!empresaId || datos.rol === 'SUPERADMIN') throw new BadRequestException('Rol o empresa no válidos');
+    if (datos.sucursalId) {
+      const sucursal = await this.prisma.sucursal.findFirst({ where: { id: Number(datos.sucursalId), empresaId } });
+      if (!sucursal) throw new BadRequestException('La sucursal no pertenece a esta empresa');
+    }
     const existe = await this.prisma.usuario.findUnique({
       where: { email: datos.email },
     });
@@ -91,6 +96,11 @@ export class UsuariosService {
 
   async actualizar(id: number, datos: any, empresaId: number) {
     await this.obtener(id, empresaId);
+    if (datos.rol === 'SUPERADMIN') throw new BadRequestException('Rol no permitido');
+    if (datos.sucursalId) {
+      const sucursal = await this.prisma.sucursal.findFirst({ where: { id: Number(datos.sucursalId), empresaId } });
+      if (!sucursal) throw new BadRequestException('La sucursal no pertenece a esta empresa');
+    }
 
     const data: any = {};
     if (datos.nombre !== undefined) data.nombre = datos.nombre;

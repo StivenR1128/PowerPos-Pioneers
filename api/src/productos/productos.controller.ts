@@ -20,9 +20,25 @@ export class ProductosController {
     return this.productosService.listar(req.user.empresaId, categoriaId ? +categoriaId : undefined);
   }
 
+  @Get('alertas-stock')
+  alertasStock(@Request() req: any) {
+    return this.productosService.obtenerAlertasStock(req.user.empresaId);
+  }
+
   @Get(':id')
   obtener(@Param('id') id: string, @Request() req: any) {
     return this.productosService.obtener(+id, req.user.empresaId);
+  }
+
+  @Get(':id/historial-stock')
+  historialStock(@Param('id') id: string, @Request() req: any) {
+    return this.productosService.obtenerHistorialStock(+id, req.user.empresaId);
+  }
+
+  @Post(':id/ajuste-stock')
+  @Roles('ADMIN_EMPRESA', 'GERENTE')
+  ajustarStock(@Param('id') id: string, @Body() body: any, @Request() req: any) {
+    return this.productosService.ajustarStock(+id, body, req.user.id, req.user.empresaId);
   }
 
   @Patch(':id')

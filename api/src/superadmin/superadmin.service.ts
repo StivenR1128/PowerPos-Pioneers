@@ -181,7 +181,7 @@ export class SuperadminService {
     await this.prisma.$transaction(async (tx) => {
       const empresa = await tx.empresa.findUnique({ where: { id }, select: { id: true, nombre: true, nit: true } });
       if (!empresa) throw new NotFoundException('Empresa no encontrada');
-      const [categorias, productos, clientes, movimientos, adicionales, preparaciones, lotes, consumos, pedidosWeb, pedidos, cajas, movimientosInventario] = await Promise.all([
+      const [categorias, productos, clientes, movimientos, adicionales, preparaciones, lotes, consumos, pedidosWeb, pedidos, cajas, movimientosInventario, ingredientes] = await Promise.all([
         tx.categoria.count({ where: { empresaId: id } }),
         tx.producto.count({ where: { empresaId: id } }),
         tx.cliente.count({ where: { empresaId: id } }),
@@ -194,8 +194,9 @@ export class SuperadminService {
         tx.pedido.count({ where: { sucursal: { empresaId: id } } }),
         tx.caja.count({ where: { sucursal: { empresaId: id } } }),
         tx.movimientoInventario.count({ where: { usuario: { empresaId: id } } }),
+        tx.ingrediente.count({ where: { empresaId: id } }),
       ]);
-      if ([categorias, productos, clientes, movimientos, adicionales, preparaciones, lotes, consumos, pedidosWeb, pedidos, cajas, movimientosInventario].some(Boolean)) {
+      if ([categorias, productos, clientes, movimientos, adicionales, preparaciones, lotes, consumos, pedidosWeb, pedidos, cajas, movimientosInventario, ingredientes].some(Boolean)) {
         throw new ConflictException('La empresa tiene datos cargados o actividad. Desactívala para conservar su historial.');
       }
       const usuarios = await tx.usuario.findMany({ where: { empresaId: id }, select: { id: true } });

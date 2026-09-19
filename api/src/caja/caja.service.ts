@@ -11,6 +11,8 @@ export class CajaService {
   ) {}
 
   async abrirCaja(datos: any, usuarioId: number, sucursalId: number, empresaId?: number) {
+    const sucursal = await this.prisma.sucursal.findFirst({ where: { id: sucursalId, empresaId: empresaId ?? undefined, activo: true } });
+    if (!sucursal || !empresaId) throw new BadRequestException('Sucursal no válida para esta empresa');
     const montoInicial = Number(datos?.montoInicial ?? 0);
     const cajeroId = Number(datos?.cajeroId ?? usuarioId);
 
@@ -88,7 +90,7 @@ export class CajaService {
     }
   }
 
-  async cerrarCaja(cajaId: number, datos: any, usuarioId: number, automatico = false) {
+  async cerrarCaja(cajaId: number, datos: any, usuarioId: number, automatico = false, empresaId?: number) {
     const caja = await this.prisma.caja.findUnique({
       where: { id: cajaId },
       include: {
@@ -98,7 +100,7 @@ export class CajaService {
       },
     });
 
-    if (!caja) throw new NotFoundException('Caja no encontrada');
+    if (!caja || (empresaId && caja.sucursal.empresaId !== empresaId)) throw new NotFoundException('Caja no encontrada');
     if (caja.estado === 'CERRADA') throw new BadRequestException('La caja ya está cerrada');
 
     const totalVentas = caja.pedidos
@@ -184,9 +186,10 @@ export class CajaService {
     };
   }
 
-  async obtenerCajaAbierta(sucursalId: number) {
+  async obtenerCajaAbierta(sucursalId: number, empresaId: number) {
+    if (!sucursalId || !empresaId) throw new BadRequestException('Sucursal no válida');
     const caja = await this.prisma.caja.findFirst({
-      where: { sucursalId, estado: 'ABIERTA' },
+      where: { sucursalId, sucursal: { empresaId }, estado: 'ABIERTA' },
       include: {
         usuario: { select: { nombre: true } },
         sucursal: { select: { nombre: true } },
@@ -205,7 +208,9 @@ export class CajaService {
     return { ...caja, totalVentas, totalEsperado };
   }
 
-  async registrarAperturaIrregular(cajaId: number, usuarioId: number, descripcion: string) {
+  async registrarAperturaIrregular(cajaId: number, usuarioId: number, descripcion: string, empresaId: number) {
+    const cajaPropia = await this.prisma.caja.findFirst({ where: { id: cajaId, sucursal: { empresaId } } });
+    if (!cajaPropia) throw new NotFoundException('Caja no encontrada');
     await this.registrarEvento({
       cajaId,
       tipo: 'APERTURA_IRREGULAR',
@@ -227,18 +232,18 @@ export class CajaService {
     });
   }
 
-  async obtenerEventos(sucursalId: number) {
+  async obtenerEventos(sucursalId: number, empresaId: number) {
     return this.prisma.eventoCaja.findMany({
-      where: { caja: { sucursalId } },
+      where: { caja: { sucursalId, sucursal: { empresaId } } },
       include: { usuario: { select: { nombre: true } } },
       orderBy: { creadoEn: 'desc' },
       take: 50,
     });
   }
 
-  async obtenerAlertas(sucursalId: number) {
+  async obtenerAlertas(sucursalId: number, empresaId: number) {
     return this.prisma.eventoCaja.findMany({
-      where: { caja: { sucursalId }, esAlerta: true },
+      where: { caja: { sucursalId, sucursal: { empresaId } }, esAlerta: true },
       include: { usuario: { select: { nombre: true } } },
       orderBy: { creadoEn: 'desc' },
       take: 20,
