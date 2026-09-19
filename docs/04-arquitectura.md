@@ -72,7 +72,7 @@ Parte de las consultas usa `empresaId` del token, de forma directa o mediante su
 
 ## Consistencia y datos históricos
 
-Las líneas guardan precio base y los adicionales guardan nombre y precio de la venta. El nombre del producto se obtiene por relación, no por copia histórica. Venta, decremento de stock, ingreso y puntos se ejecutan separadamente. Tampoco se observó transacción global en consumo interno o lotes. Debe diseñarse una unidad transaccional antes de garantizar consistencia ante fallos.
+Las líneas guardan precio base y los adicionales guardan nombre y precio de la venta. El nombre del producto se obtiene por relación, no por copia histórica. Venta, decremento de stock, ingreso, canje y acumulación comparten una transacción Prisma. Aceptar PedidoWeb bloquea la solicitud y registra la venta en esa misma transacción; notificaciones de venta POS se procesan después del commit. Consumo interno y lotes conservan sus brechas propias de atomicidad.
 
 ## Despliegue previsto, todavía no acreditado
 
@@ -103,3 +103,11 @@ Este diagrama es una propuesta, no evidencia de un despliegue existente. Antes d
 ## Fuentes
 
 [Backend](../api/src/app.module.ts), [arranque](../api/src/main.ts), [eventos](../api/src/pedidos/pedidos-eventos.service.ts), [manifiesto API](../api/package.json), [manifiesto web](../web/package.json) y [Compose](../docker-compose.yml).
+
+## Tiendas y domicilios
+
+La ruta pública Next.js /tienda/[slug] consulta TiendaPublicaController. TiendaAdminController aplica JWT y roles a configuración y bandeja. Empresa guarda tiendaSlug único, tiendaConfig y fidelizacionConfig JSON validados por servicio. PedidoWeb guarda contacto de entrega, snapshot del carrito, clave de reintento y estado. La FK única pedidoId establece relación opcional uno a uno con Pedido; sucursalId y repartidorId referencian sucursal y usuario.
+
+La página pública no usa la sesión del personal. El servicio determina empresa desde el slug; usa precios del catálogo, limita solicitudes y expone seguimiento sin datos de dirección o teléfono. El cajero recibe conteo y bandeja por sondeo cada cinco segundos; comprador consulta estado cada diez. La clave compuesta empresaId/clave evita solicitudes repetidas y un bloqueo de fila evita aceptaciones duplicadas. El canje descuenta saldo mediante actualización condicional atómica.
+
+La landing comercial es un sitio estático independiente incluido como archivos normales en el repositorio principal. No contiene el backend ni sustituye el despliegue de las tiendas.

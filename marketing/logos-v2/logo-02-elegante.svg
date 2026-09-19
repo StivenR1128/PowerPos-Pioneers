@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="220" viewBox="0 0 1160 220" role="img" aria-label="PowerPOS"><g transform="translate(22 30)"><circle cx="80" cy="80" r="73" fill="#F8F9F5" stroke="#17352F" stroke-width="4"/>
+      <path d="M55 126V37h40c27 0 43 14 43 35s-16 36-43 36H55" fill="none" stroke="#17352F" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M68 111h47" stroke="#C5774E" stroke-width="7" stroke-linecap="round"/>
+      <circle cx="130" cy="118" r="7" fill="#C5774E"/></g><text x="221" y="130" font-family="Georgia,serif" font-size="116" letter-spacing="-5" fill="#17352F">Power</text>
+      <text x="645" y="130" font-family="Georgia,serif" font-size="116" letter-spacing="-5" fill="#C5774E">POS</text>
+      <path d="M224 154H913" stroke="#C7D3CA" stroke-width="2"/>
+      <text x="226" y="190" font-family="Segoe UI,Arial,sans-serif" font-size="26" letter-spacing="8" fill="#6A7D70">PUNTO DE VENTA</text></svg>

@@ -1,6 +1,6 @@
 # 09. Manual de usuario
 
-Versión documental 1.0 · Corte 2026-09-15. Para la copia destinada a adquirentes, ver [manual del cliente](cliente/manual-del-cliente.md). Este manual describe pantallas encontradas en el código; las funciones disponibles dependen de la configuración entregada y de las correcciones pendientes.
+Versión documental 1.2 · Corte 2026-09-15. Para la copia destinada a adquirentes, ver [manual del cliente](cliente/manual-del-cliente.md). Este manual describe pantallas encontradas en el código; las funciones disponibles dependen de la configuración entregada y de las correcciones pendientes.
 
 ## Pantallas
 
@@ -56,7 +56,7 @@ La pantalla incluye creación/listado de preparaciones; la API contiene registro
 
 ## Clientes y fidelización
 
-Buscar cliente antes de crear otro. Registrar solo datos necesarios para el servicio. Revisar historial y puntos. Una venta vinculada suma un punto por cada 1000 del total; esta regla está codificada. Las acciones de puntos y su política comercial deben acordarse; una anulación no descuenta automáticamente los puntos.
+Buscar cliente antes de crear otro. Registrar solo datos necesarios para el servicio. Revisar historial y puntos. La empresa define cuánto comprar para ganar un punto y cuánto descuento representa al canjearlo. El programa inicia desactivado, conserva los saldos anteriores y permite excluir categorías y productos. La base elegible recibe su parte proporcional de los descuentos; domicilio excluido y redondeo hacia abajo. No hay valor obligatorio. El canje se realiza en POS y los ajustes manuales solo por administrador.
 
 ## Finanzas y reportes
 
@@ -73,3 +73,7 @@ Conciliar efectivo y otros medios por separado; revisar ventas, eventos e incide
 ## Soporte
 
 Reportar pantalla, fecha/hora, usuario sin contraseña, sucursal, número de pedido, acción y mensaje de error. Adjuntar evidencia sin datos sensibles innecesarios. No compartir tokens, contraseñas ni respaldo completo por canales no acordados. Contacto, horario y tiempos de atención deben completarse en [acta de entrega](cliente/acta-de-entrega.md).
+
+## Mi tienda, Domicilios y Puntos
+
+El administrador configura su página en Mi tienda y el programa en Puntos. Cajero, administrador y gerente revisan solicitudes en Domicilios; el domiciliario solo sus asignaciones. El comprador accede sin sesión del personal a /tienda/{slug}. Procedimientos completos en [tiendas, domicilios y fidelización](12-tiendas-domicilios-fidelizacion.md).

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="240" viewBox="0 0 920 240" role="img" aria-labelledby="title">
+  <title id="title">PowerPOS</title>
+  <rect x="8" y="8" width="224" height="224" rx="52" fill="#fff"/>
+  <path d="M77 171V65h52c41 0 61 20 61 52s-21 52-61 52H77" fill="none" stroke="#102b27" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M126 144l54-54m-28 0h28v28" fill="none" stroke="#ff713d" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="270" y="159" fill="#fff" font-family="Manrope,Arial,sans-serif" font-size="116" font-weight="800" letter-spacing="-5">Power<tspan fill="#ff713d">POS</tspan></text>
+</svg>

@@ -8,6 +8,68 @@ Hay **26 entidades** y **53 relaciones con FK**. [Diagrama completo editable](di
 
 `||` significa exactamente uno; `o|` o `|o`, cero o uno; `o{`, cero o muchos. La FK obligatoria exige un padre por registro hijo, pero no obliga al padre a tener hijos. Las líneas discontinuas señalan relaciones no identificadoras: las tablas tienen PK propia. Los diagramas por dominio omiten relaciones externas al grupo; el completo y la tabla final incluyen todas.
 
+## Tienda, domicilios y fidelización
+
+[Archivo Mermaid](diagramas/er-08-tienda-domicilios.mmd)
+
+```mermaid
+erDiagram
+  Empresa {
+    Int id PK
+    String nombre
+    String nit UK
+    String tiendaSlug UK
+  }
+  Sucursal {
+    Int id PK
+    Int empresaId FK
+    String nombre
+  }
+  Usuario {
+    Int id PK
+    Int empresaId FK "nullable"
+    Int sucursalId FK "nullable"
+    String nombre
+    String email UK
+  }
+  Cliente {
+    Int id PK
+    Int empresaId FK
+    String nombre
+  }
+  Pedido {
+    Int id PK
+    Int sucursalId FK
+    Int usuarioId FK
+    Int clienteId FK "nullable"
+    Int cajaId FK "nullable"
+    String numero UK
+    EstadoPedido estado
+    Decimal total
+  }
+  PedidoWeb {
+    String id PK
+    Int empresaId FK
+    Int sucursalId FK
+    String estado
+    String nombre
+    Decimal total
+    Int pedidoId FK "nullable"
+    Int repartidorId FK "nullable"
+  }
+  Empresa ||..o{ Sucursal : "empresaId"
+  Empresa |o..o{ Usuario : "empresaId"
+  Sucursal |o..o{ Usuario : "sucursalId"
+  Empresa ||..o{ Cliente : "empresaId"
+  Sucursal ||..o{ Pedido : "sucursalId"
+  Usuario ||..o{ Pedido : "usuarioId"
+  Cliente |o..o{ Pedido : "clienteId"
+  Empresa ||..o{ PedidoWeb : "empresaId"
+  Pedido |o..o| PedidoWeb : "pedidoId"
+  Sucursal ||..o{ PedidoWeb : "sucursalId"
+  Usuario |o..o{ PedidoWeb : "repartidorId"
+```
+
 ## Organización y auditoría
 
 [Archivo Mermaid](diagramas/er-01-organizacion.mmd)
@@ -410,7 +472,7 @@ erDiagram
 | Auditoria | empresaId | Empresa.id | 0..1 | 0..N |
 | Auditoria | usuarioId | Usuario.id | 0..1 | 0..N |
 | PedidoWeb | empresaId | Empresa.id | 1 | 0..N |
-| PedidoWeb | pedidoId | Pedido.id | 0..1 | 0..N |
+| PedidoWeb | pedidoId | Pedido.id | 0..1 | 0..1 |
 | PedidoWeb | sucursalId | Sucursal.id | 1 | 0..N |
 | PedidoWeb | repartidorId | Usuario.id | 0..1 | 0..N |
 

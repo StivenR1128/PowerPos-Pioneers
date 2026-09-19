@@ -1,6 +1,6 @@
 # Procedimientos operativos y contingencia
 
-Versión 1.1 · 16 de septiembre de 2026. Aplicables como guía del piloto en una empresa. El negocio debe asignar personas responsables y aprobar los criterios de caja/corrección antes de operar. Los procedimientos no sustituyen las correcciones técnicas pendientes.
+Versión documental 1.2 · 17 de septiembre de 2026. Aplicables como guía del piloto en una empresa. El negocio debe asignar personas responsables y aprobar los criterios de caja/corrección antes de operar. Los procedimientos no sustituyen las correcciones técnicas pendientes.
 
 ## PO-01 Preparación de jornada
 
@@ -27,7 +27,7 @@ Versión 1.1 · 16 de septiembre de 2026. Aplicables como guía del piloto en un
 6. Si existen dos pedidos, registrar ambos y aplicar gestión de excepción; no borrar uno sin conciliación.
 7. Cerrar incidencia solo después de documentar una única venta válida y sus efectos correctos.
 
-**Control:** la aplicación no implementa idempotencia acreditada; el registro de incidencia evita reintentos ciegos, pero no reemplaza una solución técnica.
+**Control:** las solicitudes web utilizan una clave de reintento y aceptación única. La venta POS directa aún no tiene clave de idempotencia; consultar antes de repetirla. La transacción de venta evita persistencias parciales ante errores de escritura.
 
 ## PO-03 Corrección y anulación
 
@@ -138,3 +138,11 @@ Asignar cuentas individuales con función y sucursal. Cambiar clave inicial medi
 ## PO-10 Cierre de incidente
 
 Para cada caso registrar origen, impacto, datos afectados, solución, ejecutor, versión, comprobaciones y aceptación del supervisor. Un estado «resuelto» exige evidencia, no solo que dejó de aparecer el mensaje. Si se requieren cambios de software, mantener referencia al defecto y a su prueba de regresión.
+
+## PO-11 Pedido web y domicilio
+
+Revisar bandeja, dirección, zona, productos y pago declarado. Validar disponibilidad. Verificar identidad antes de asociar cliente. Aceptar con caja abierta; si hay error, revisar el estado antes de repetir. Rechazar solicitudes RECIBIDO con motivo cuando no se pueden atender. Asignar domiciliario propio, despachar y confirmar entrega. Las solicitudes web RECIBIDO se pueden rechazar sin venta. Una venta web aceptada o con movimientos de puntos bloquea la anulación directa y requiere conciliación. No existe todavía un flujo automático de devolución que revierta ingreso e inventario; no presentar ANULADO como reembolso.
+
+## PO-12 Cambio de reglas de puntos
+
+Solo administrador: documentar los dos valores y exclusiones, comunicar condiciones al cliente y guardar. Probar una venta elegible, otra excluida y un canje controlado. Los cambios no recalculan ventas anteriores, pero el nuevo valor monetario se usa en futuros canjes del saldo existente.

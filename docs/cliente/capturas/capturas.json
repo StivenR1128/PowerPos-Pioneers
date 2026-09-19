@@ -100,5 +100,31 @@
     }
   ],
   "errores": [],
-  "peticionesInterceptadas": 52
+  "peticionesInterceptadas": 52,
+  "actualizacion": "2026-09-17",
+  "capturasIntegracion12": {
+    "origen": "Frontend real conectado a API y PostgreSQL aislados; datos ficticios.",
+    "captures": [
+      {
+        "archivo": "23-tienda-publica.png",
+        "ruta": "/tienda/[slug]"
+      },
+      {
+        "archivo": "24-tienda-movil.png",
+        "ruta": "/tienda/[slug]"
+      },
+      {
+        "archivo": "25-administrar-tienda.png",
+        "ruta": "/mi-tienda"
+      },
+      {
+        "archivo": "26-configurar-puntos.png",
+        "ruta": "/fidelizacion"
+      },
+      {
+        "archivo": "27-domicilios.png",
+        "ruta": "/domicilios"
+      }
+    ]
+  }
 }

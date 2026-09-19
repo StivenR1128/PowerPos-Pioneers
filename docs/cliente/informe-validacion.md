@@ -1,81 +1,60 @@
 # Informe de validación para el piloto
 
-Fecha de informe: 16 de septiembre de 2026 · Versión documental 1.1.
+Fecha: 17 de septiembre de 2026 · Versión documental 1.2.
 
-**Conclusión:** se comprobaron funciones operativas en ambiente aislado y se completó material de capacitación con capturas. No se aprueba todavía un despliegue productivo: permanecen defectos de consistencia, validación, aislamiento y compilación del frontend. La aceptación de la empresa piloto requiere resolver y volver a probar los controles afectados.
+**Conclusión:** API y frontend compilan y se aprobaron 15 escenarios HTTP de tienda, domicilios y puntos en PostgreSQL aislado. Estos resultados no equivalen a aceptación productiva.
 
-## 1. Ambientes y alcance
+## 1. Ambiente y evidencia
 
-- Pruebas unitarias existentes del backend: Jest, sin datos del cliente.
-- Compilación backend: `npm run build`.
-- Comprobación TypeScript frontend: `tsc --noEmit --incremental false`.
-- Integración: servicios reales compilados y PostgreSQL 16 en contenedor temporal, puerto local 55439, base `powerpos_docs_test`, creada vacía. Se aplicaron las 15 migraciones existentes.
-- No se importó el módulo de aplicación completo, por lo que no se iniciaron cron. Notificaciones y eventos externos se sustituyeron por receptores de prueba; no se envió correo, SMS ni WhatsApp ni se accionó hardware.
-- Capturas: frontend real en navegador temporal, API interceptada con datos ficticios y escrituras bloqueadas, excepto respuesta sintética de login. No son pruebas de persistencia ni autorización backend.
+Se utilizó PostgreSQL 16 temporal en puerto 55439, base independiente `powerpos_store_test`, con datos ficticios. El script [tienda-integracion.cjs](../../api/test/tienda-integracion.cjs) conserva los escenarios reproducibles. No se enviaron mensajes a clientes.
 
-La prueba de servicios ocurrió el 16 de septiembre a las 02:44 UTC; la toma final de capturas, a las 05:47 UTC. La hora local de Colombia difiere de UTC. No se utilizaron datos comerciales reales.
+La migración `20260916070000_tienda_domicilios_fidelizacion` se comprobó en base aislada y se aplicó a la base local de desarrollo `powerpos_dev` después de generar un respaldo. No se desplegó en producción.
 
-## 2. Resultados generales
+## 2. Resultados actuales
 
-| Verificación | Resultado | Alcance de la conclusión |
+| Verificación | Resultado | Alcance |
 | --- | --- | --- |
-| Unitarias existentes | 2 suites / 2 pruebas aprobadas | Controlador de ejemplo e impresión por socket de prueba |
-| Build backend | Aprobado | Código backend compila en el entorno revisado |
-| Migraciones en base vacía | 15 aplicadas | Esquema recreable con esos archivos |
-| Escenarios de servicios | 10 aprobados y 3 brechas confirmadas | Persistencia y lógica de los casos enumerados |
-| Respaldo/restauración sintética | Aprobado para controles indicados | Dump/restauración en segunda base y conteos coincidentes |
-| Capturas de interfaz | 22 archivos únicos, sin errores de página registrados en la ejecución final | Presentación con datos sintéticos; 21 utilizados en manual |
-| TypeScript frontend | Fallido, 2 errores | Bloqueo a revisar antes del build productivo |
+| Compilación API | Aprobada | Código backend compilable |
+| Compilación productiva web | Aprobada, 21 rutas | Corregidos los dos errores de tipos de 1.1 |
+| Unitarias existentes | 2 pruebas aprobadas | Cobertura limitada de las suites existentes |
+| Integración HTTP | 15 escenarios aprobados | Persistencia, permisos y concurrencia del módulo nuevo |
+| Navegador con API aislada | Pedido, seguimiento y administración comprobados | Recarga de seguimiento; móvil de 390 px sin desbordamiento horizontal; sin errores JavaScript registrados |
+| Migración local | Aplicada tras respaldo | Producción pendiente |
 
-## 3. Escenarios de servicios comprobados
+## 3. Escenarios HTTP aprobados
 
-| ID | Escenario | Resultado observado |
-| --- | --- | --- |
-| AT-01 | Credenciales válidas e inválidas | Token/rol correctos; clave incorrecta rechazada |
-| AT-02 | Vender sin caja | Rechazo y cero pedidos persistidos |
-| AT-03 | Abrir caja y repetir apertura | Primera permitida y segunda secuencial rechazada |
-| AT-04 | Venta con extra, exclusión y descuento técnico | Subtotal 24000; total 23000; pan 98; cebolla 1000; queso 960; 23 puntos; ingreso 23000 |
-| AT-05 | Consultar pedido con otra empresa | PedidosService rechaza el pedido ajeno |
-| AT-06 | Cambiar estado | Estado actualizado y evento entregado al receptor de prueba |
-| AT-07 | Consumo interno | Descuenta receta sin ingreso; empresa no habilitada rechazada |
-| AT-08 | Entrada en unidad de compra | 2 bolsas de 500 sobre saldo 1000 producen saldo 2000 e historial |
-| AT-09 | Producción de lote | Se registran 10 porciones y descuento de insumo |
-| AT-10 | Anular venta | **Brecha:** persisten inventario consumido, puntos e ingreso |
-| AT-11 | Cantidad cero | **Brecha:** se acepta un pedido con línea de cantidad cero |
-| AT-12 | Consulta de inventario | **Brecha:** servicio global sin ámbito empresarial |
-| AT-13 | Cierre con diferencia | Cierra y registra diferencia de 2000 y alerta en escenario de ensayo |
+| ID | Escenario y resultado |
+| --- | --- |
+| TI-01 | Tienda automática y catálogo público sin datos internos de clientes. |
+| TI-02 | Fidelización desactivada inicialmente, sin valores comerciales impuestos. |
+| TI-03 | Edición de configuración limitada al administrador de empresa. |
+| TI-04 | Categorías ajenas rechazadas en configuración de fidelización. |
+| TI-05 | Productos, cantidades y totales inválidos rechazados. |
+| TI-06 | Clave repetida devuelve la misma solicitud; envío público no crea venta. |
+| TI-07 | Aceptación sin caja abierta rechazada sin escrituras parciales. |
+| TI-08 | Aceptaciones concurrentes producen una sola venta y respetan exclusión de bebidas. |
+| TI-09 | Seguimiento y administración de otra empresa rechazados. |
+| TI-10 | Asignación de repartidor y transición de entrega comprobadas. |
+| TI-11 | Canje configurable y acumulación sobre base elegible descontada. |
+| TI-12 | Canje inválido rechazado sin escrituras parciales. |
+| TI-13 | Canjes concurrentes no gastan dos veces el mismo saldo. |
+| TI-14 | Clientes aislados por empresa y ajuste manual de puntos restringido por rol. |
+| TI-15 | Rechazo registra motivo sin generar venta. |
 
-AT-05 no demuestra aislamiento completo: solo prueba esa operación de pedidos. AT-07 invoca servicio directamente y no valida guard HTTP de roles. AT-03 no prueba carreras de aperturas simultáneas. No se probaron todas las combinaciones de descuentos, unidades o cambios de estado.
+No se probaron todos los endpoints ni todas las combinaciones de reglas, carga o fallos externos. Los valores monetarios de ensayo no son tarifas recomendadas.
 
-## 4. Respaldo y restauración
+## 4. Evidencia histórica y correcciones
 
-Se ejecutó `pg_dump` en formato personalizado de la base sintética y se restauró con `pg_restore` en la nueva base `powerpos_docs_restore`, dentro del mismo contenedor aislado.
+Los [resultados de aceptación 1.1](../referencias/resultados-aceptacion.json) corresponden al ensayo anterior en `powerpos_docs_test`: diez escenarios aprobados y tres brechas observadas. Se conservan sin alterarlos. La cantidad cero entonces aceptada ahora se rechaza; los puntos fijos fueron reemplazados por configuración empresarial. Los errores de tipos de Cocina y superadministración se corrigieron y el build web aprobó.
 
-| Tabla | Base original | Base restaurada |
-| --- | --- | --- |
-| empresas | 2 | 2 |
-| pedidos | 2 | 2 |
-| ingredientes | 4 | 4 |
-| movimientos_financieros | 2 | 2 |
-| clientes | 1 | 1 |
+La restauración sintética de 1.1 terminó sin error y conservó los conteos de empresas (2), pedidos (2), ingredientes (4), movimientos financieros (2) y clientes (1). No se repitió esa restauración durante esta actualización documental ni se acreditó recuperación de archivos productivos.
 
-La restauración terminó sin error y los cinco conteos coinciden. No se midió un objetivo contractual de recuperación, no se probó desastre del host ni se restauraron logos reales; faltan esos ensayos en el ambiente que finalmente se despliegue. El resultado no garantiza backups futuros si no se configura su operación.
+Las capturas antiguas del [registro](capturas/capturas.json) usan API interceptada y datos sintéticos. Las cinco nuevas de tienda, configuración, puntos y domicilios proceden del ensayo con API y base aisladas. Una captura por sí sola no acredita persistencia ni autorización.
 
-## 5. Errores de tipos encontrados
+## 5. Pendientes y aceptación
 
-| Ubicación | Hallazgo | Acción requerida |
-| --- | --- | --- |
-| Cocina, uso de `pedido.cliente` | La interfaz `Pedido` no declara `cliente` | Corregir tipo según contrato y recompilar |
-| Superadministración, formulario de alta | El estado inicial no declara adminNombre, adminEmail ni adminPassword, usados como claves | Completar tipo/estado del formulario y recompilar |
+Quedan pendientes aislamiento de inventario, revisión integral de caja y permisos, arqueo por medio, devoluciones con compensación, idempotencia del POS directo, carga, hardware, restauración completa y operación con personal. Ver [brechas](../11-brechas-y-evolucion.md).
 
-Son hallazgos de comprobación, no cambios implementados por esta entrega documental. Una vista de desarrollo que renderiza no equivale a build de producción aprobado.
+WhatsApp abre una conversación y no importa pedidos automáticamente. No hay pasarela integrada; el negocio verifica el pago declarado.
 
-## 6. Pruebas que siguen pendientes
-
-Autorización completa mediante HTTP, cruce de IDs en clientes/caja/inventario, fallos intermedios de escritura, concurrencia, reintentos, credenciales y revocación, stock negativo, restauración integral de archivos, dispositivos reales, integraciones de mensajería, varios equipos/navegadores y jornada operativa con personal. También falta probar la versión desplegada y ejecutar la aceptación firmada de la empresa piloto.
-
-## 7. Evidencia reproducible y decisión
-
-El expediente técnico conserva scripts de captura y prueba, [resultados JSON](../referencias/resultados-aceptacion.json) y [registro de capturas](capturas/capturas.json). Los scripts protegen la base de destino y no borran una base existente para repetir el ensayo.
-
-**Estado de entrega:** documentación ampliada y ensayos parciales completados; piloto productivo **no aprobado aún**. Condiciones para avanzar: correcciones y repruebas de bloqueos, instalación definida, personal capacitado y acta basada en evidencia del ambiente real.
+**Estado:** documentación y comprobaciones del módulo actualizadas; aceptación productiva pendiente de corregir los bloqueos aplicables, probar la instalación definitiva, capacitar al piloto y completar el acta con evidencia real.

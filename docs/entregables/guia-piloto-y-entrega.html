@@ -8,9 +8,9 @@
     code{font-family:Consolas,monospace;font-size:.9em;background:#f1f5f9;padding:2px 4px;overflow-wrap:anywhere}pre{background:#f1f5f9;border:1px solid #dbe2ea;padding:18px;white-space:pre-wrap;font-size:13px;line-height:1.5}pre code{padding:0}
     figure{margin:28px 0;padding:14px;border:1px solid #dbe2ea;overflow:auto}figure svg{display:block;width:100%;height:auto;max-height:760px}figure img{display:block;width:100%;height:auto}figcaption{font-size:12px;color:#475569;margin-top:12px}.chapter{margin-top:56px}.print{position:fixed;right:24px;bottom:24px;border:0;border-radius:8px;background:#16324f;color:white;padding:14px 20px;cursor:pointer}.note{padding:14px 18px;background:#fff7ed;border-left:4px solid #d97706}nav .sub{font-size:13px;padding-left:16px}
     @media(max-width:750px){main{margin:0;padding:28px 20px}.cover h1{font-size:34px}table{font-size:11px}th,td{padding:7px}.print{position:static;margin:16px}}
-    @media print{@page{size:A4;margin:18mm 15mm}body{background:white;font-size:10pt;line-height:1.45}main{margin:0;padding:0;max-width:none;box-shadow:none}h1{font-size:23pt}h2{font-size:16pt}h3{font-size:12pt}h1,h2,h3{break-after:avoid}p{orphans:3;widows:3}.cover{break-after:page;padding:32mm 0}.cover h1{font-size:34pt}nav{break-after:page;background:none;padding:0}nav a{padding:3px 0}.chapter{break-before:page;margin:0}table{font-size:8pt}th,td{padding:6px 7px}tr{break-inside:avoid}figure{break-inside:avoid;padding:4px}figure svg{max-height:225mm}.print{display:none}a{color:inherit;text-decoration:none}pre{font-size:8pt}}
-  </style></head><body><main><header class="cover"><p class="eyebrow">PowerPOS Pioneers</p><h1>Guía del piloto y entrega</h1><p class="subtitle">Procedimientos, capacitación y resultados de validación</p><p class="meta">Versión documental 1.1 · 16 de septiembre de 2026</p><p>Plan para implantar primero en una empresa y verificar condiciones antes de expandir a otras. Incluye procedimientos operativos, ensayos realizados y criterios de aceptación pendientes.</p></header><nav aria-label="Contenido"><h2>Contenido</h2><a href="#chapter-1">Alcance y ficha por empresa</a><a href="#chapter-2">Procedimientos operativos y contingencia</a><a href="#chapter-3">Plan piloto y capacitación</a><a href="#chapter-4">Informe de validación para el piloto</a><a href="#chapter-5">Acta de entrega y aceptación — PowerPOS Pioneers</a></nav><section class="chapter" id="chapter-1"><h1>Alcance y ficha por empresa</h1>
-<p>Plantilla reutilizable, versión 1.1. Crear una copia por adquirente cuando se concrete la implantación. Para el piloto actual no existe despliegue ni cliente identificado en este expediente; no es necesario inventar esos datos para usar el manual de capacitación.</p>
+    @media print{@page{size:A4;margin:18mm 15mm}body{background:white;font-size:10pt;line-height:1.45}main{margin:0;padding:0;max-width:none;box-shadow:none}h1{font-size:23pt}h2{font-size:16pt}h3{font-size:12pt}h1,h2,h3{break-after:avoid}p{orphans:3;widows:3}.cover{break-after:page;padding:32mm 0}.cover h1{font-size:34pt}nav{break-after:page;background:none;padding:0}nav a{padding:3px 0}.chapter{break-before:page;margin:0}table{font-size:8pt}th,td{padding:6px 7px}tr{break-inside:avoid}figure{break-inside:avoid;padding:4px}figure svg{max-height:225mm}figure img{max-height:205mm;width:auto;max-width:100%;object-fit:contain;margin:auto}.print{display:none}a{color:inherit;text-decoration:none}pre{font-size:8pt}}
+  </style></head><body><main><header class="cover"><p class="eyebrow">PowerPOS Pioneers</p><h1>Guía del piloto y entrega</h1><p class="subtitle">Procedimientos, capacitación y resultados de validación</p><p class="meta">Versión documental 1.2 · 17 de septiembre de 2026</p><p>Plan para implantar primero en una empresa y verificar condiciones antes de expandir a otras. Incluye procedimientos operativos, ensayos realizados y criterios de aceptación pendientes.</p></header><nav aria-label="Contenido"><h2>Contenido</h2><a href="#chapter-1">Alcance y ficha por empresa</a><a href="#chapter-2">Procedimientos operativos y contingencia</a><a href="#chapter-3">Plan piloto y capacitación</a><a href="#chapter-4">Informe de validación para el piloto</a><a href="#chapter-5">Acta de entrega y aceptación — PowerPOS Pioneers</a></nav><section class="chapter" id="chapter-1"><h1>Alcance y ficha por empresa</h1>
+<p>Plantilla reutilizable, versión 1.2. Crear una copia por adquirente cuando se concrete la implantación. Para el piloto actual no existe despliegue ni cliente identificado en este expediente; no es necesario inventar esos datos para usar el manual de capacitación.</p>
 <h2 id="chapter-1-section-1">Estado del producto y de la entrega</h2>
 <table>
 <thead>
@@ -87,7 +87,7 @@
 </tr>
 <tr>
 <td>Clientes y puntos</td>
-<td>Sí; controles por empresa pendientes en algunas rutas</td>
+<td>Sí; reglas configurables y controles por empresa en rutas de clientes</td>
 <td>Por seleccionar</td>
 <td>Pendiente</td>
 </tr>
@@ -145,8 +145,57 @@
 <p>Manual ilustrado y guía rápida; procedimientos; capacitación acordada; ficha de funciones; canales de soporte; acta con pruebas del ambiente y versión. Entregar anexos técnicos/código solo si forman parte del acuerdo. La copia del cliente no debe incluir claves, archivos .env ni respaldos reales.</p>
 <h2 id="chapter-1-section-4">Control de cambios</h2>
 <p>Registrar versión entregada, módulos añadidos/retirados, fecha de capacitación adicional, cambios de horario/equipos y resultados de reprueba. La actualización del manual debe acompañar cambios que alteren instrucciones de operación.</p>
+<h2 id="chapter-1-section-5">Alcance adicional 1.2 por confirmar con la empresa</h2>
+<table>
+<thead>
+<tr>
+<th>Capacidad o dato</th>
+<th>Valor acordado / evidencia</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Enlace público de la tienda y marca</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Sucursal receptora, horarios y revisión</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Zonas, tarifas, pedido mínimo y cobro</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>WhatsApp propio; sin importación automática</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Domiciliarios y flujo de entrega</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Compra elegible para ganar un punto</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Descuento por punto canjeado</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Categorías/productos excluidos y vigencia</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Prueba web → cajero → domiciliario → entregado</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Cancelaciones y devoluciones pendientes informadas</td>
+<td>____________________</td>
+</tr>
+</tbody></table>
 </section><section class="chapter" id="chapter-2"><h1>Procedimientos operativos y contingencia</h1>
-<p>Versión 1.1 · 16 de septiembre de 2026. Aplicables como guía del piloto en una empresa. El negocio debe asignar personas responsables y aprobar los criterios de caja/corrección antes de operar. Los procedimientos no sustituyen las correcciones técnicas pendientes.</p>
+<p>Versión documental 1.2 · 17 de septiembre de 2026. Aplicables como guía del piloto en una empresa. El negocio debe asignar personas responsables y aprobar los criterios de caja/corrección antes de operar. Los procedimientos no sustituyen las correcciones técnicas pendientes.</p>
 <h2 id="chapter-2-section-1">PO-01 Preparación de jornada</h2>
 <p><strong>Responsable:</strong> supervisor. <strong>Frecuencia:</strong> antes de vender.</p>
 <ol>
@@ -169,7 +218,7 @@
 <li>Si existen dos pedidos, registrar ambos y aplicar gestión de excepción; no borrar uno sin conciliación.</li>
 <li>Cerrar incidencia solo después de documentar una única venta válida y sus efectos correctos.</li>
 </ol>
-<p><strong>Control:</strong> la aplicación no implementa idempotencia acreditada; el registro de incidencia evita reintentos ciegos, pero no reemplaza una solución técnica.</p>
+<p><strong>Control:</strong> las solicitudes web utilizan una clave de reintento y aceptación única. La venta POS directa aún no tiene clave de idempotencia; consultar antes de repetirla. La transacción de venta evita persistencias parciales ante errores de escritura.</p>
 <h2 id="chapter-2-section-3">PO-03 Corrección y anulación</h2>
 <p><strong>Antes de confirmar:</strong> corregir carrito, retirar línea, cambiar cantidad o reiniciar la selección.</p>
 <p><strong>Después de confirmar:</strong> supervisor recibe solicitud, identifica motivo y pedido, verifica si hubo pago, preparación, entrega o consumo de ingredientes. Debe distinguir devolución de dinero, cambio de producto y desperdicio de un alimento ya preparado.</p>
@@ -365,8 +414,12 @@
 <p>Asignar cuentas individuales con función y sucursal. Cambiar clave inicial mediante perfil donde esté disponible. Al retirar a una persona, desactivar acceso y revisar sesiones vigentes con soporte; no borrar su historial de operaciones. En relevo, cerrar/conciliar la caja según procedimiento acordado antes de asignar nuevo responsable. No transferir la contraseña del cajero saliente.</p>
 <h2 id="chapter-2-section-10">PO-10 Cierre de incidente</h2>
 <p>Para cada caso registrar origen, impacto, datos afectados, solución, ejecutor, versión, comprobaciones y aceptación del supervisor. Un estado «resuelto» exige evidencia, no solo que dejó de aparecer el mensaje. Si se requieren cambios de software, mantener referencia al defecto y a su prueba de regresión.</p>
+<h2 id="chapter-2-section-11">PO-11 Pedido web y domicilio</h2>
+<p>Revisar bandeja, dirección, zona, productos y pago declarado. Validar disponibilidad. Verificar identidad antes de asociar cliente. Aceptar con caja abierta; si hay error, revisar el estado antes de repetir. Rechazar solicitudes RECIBIDO con motivo cuando no se pueden atender. Asignar domiciliario propio, despachar y confirmar entrega. Las solicitudes web RECIBIDO se pueden rechazar sin venta. Una venta web aceptada o con movimientos de puntos bloquea la anulación directa y requiere conciliación. No existe todavía un flujo automático de devolución que revierta ingreso e inventario; no presentar ANULADO como reembolso.</p>
+<h2 id="chapter-2-section-12">PO-12 Cambio de reglas de puntos</h2>
+<p>Solo administrador: documentar los dos valores y exclusiones, comunicar condiciones al cliente y guardar. Probar una venta elegible, otra excluida y un canje controlado. Los cambios no recalculan ventas anteriores, pero el nuevo valor monetario se usa en futuros canjes del saldo existente.</p>
 </section><section class="chapter" id="chapter-3"><h1>Plan piloto y capacitación</h1>
-<p>Versión 1.1 · 16 de septiembre de 2026. El sistema se ofrecerá a varias empresas, comenzando con <strong>una empresa piloto</strong>. No se ha desplegado. Este plan organiza preparación, ensayo, aceptación y expansión sin asumir dirección pública ni compromisos comerciales.</p>
+<p>Versión documental 1.2 · 17 de septiembre de 2026. El sistema se ofrecerá a varias empresas, comenzando con <strong>una empresa piloto</strong>. No se ha desplegado. Este plan organiza preparación, ensayo, aceptación y expansión sin asumir dirección pública ni compromisos comerciales.</p>
 <h2 id="chapter-3-section-1">1. Objetivo del piloto</h2>
 <p>Comprobar en una operación controlada que el personal puede registrar pedidos, preparar, cobrar, seguir existencias y conciliar caja con información consistente. Medir incidencias, tareas que requieren asistencia y adecuación de equipos/horarios. No usar el piloto como evidencia de aislamiento multiempresa: ese aspecto necesita pruebas específicas antes de incorporar otro negocio.</p>
 <h2 id="chapter-3-section-2">2. Alcance inicial recomendado</h2>
@@ -483,7 +536,7 @@
 <li>Comprueba total 24000 sin descuento y clasifica pago de prueba.</li>
 <li>Cocina comprueba cantidad, exclusión y extra; inicia preparación y marca listo.</li>
 <li>Supervisor registra entrega desde Dashboard.</li>
-<li>Verificar 2 panes y 40 gramos de queso consumidos, cebolla no consumida y 24 puntos para cliente.</li>
+<li>Verificar 2 panes y 40 gramos de queso consumidos, cebolla no consumida y puntos según la regla configurada; con programa desactivado, cero puntos.</li>
 <li>Revisar ingreso financiero y evitar duplicarlo manualmente.</li>
 <li>Simular fallo de impresión sin repetir la venta y describir escalamiento.</li>
 <li>Conciliar y cerrar según criterio validado, con registro de resultados.</li>
@@ -588,205 +641,134 @@
 <p>Antes de sumar la segunda empresa, verificar inventario separado, clientes/caja protegidos por empresa, roles efectivos, destinatarios de notificaciones correctos y pruebas cruzadas con IDs de ambas empresas. Usar bases separadas solo es una alternativa de despliegue que debe diseñarse y probarse; no se supone implementada por este manual.</p>
 <h2 id="chapter-3-section-9">9. Decisión final</h2>
 <p>Resultados posibles: continuar piloto, ampliar con condiciones, repetir ensayo o no aceptar. El acta debe identificar evidencias, defectos abiertos, responsables y decisión de negocio. La documentación no firma ni aprueba por las partes.</p>
+<h2 id="chapter-3-section-10">Ensayo de tienda y domicilios (1.2)</h2>
+<p>Capacitar al administrador en marca, catálogo, zonas y fidelización; al cajero en revisión, cobro, rechazo y cliente identificado; al domiciliario en acceso a sus asignaciones y entrega. Ejecutar un pedido desde móvil y comprobar aviso, aceptación única, tarifa, entrega y seguimiento. Ensayar tienda pausada y precio cambiado. Probar comida elegible y bebidas excluidas con valores definidos por la empresa, no con una tarifa impuesta por PowerPOS.</p>
 </section><section class="chapter" id="chapter-4"><h1>Informe de validación para el piloto</h1>
-<p>Fecha de informe: 16 de septiembre de 2026 · Versión documental 1.1.</p>
-<p><strong>Conclusión:</strong> se comprobaron funciones operativas en ambiente aislado y se completó material de capacitación con capturas. No se aprueba todavía un despliegue productivo: permanecen defectos de consistencia, validación, aislamiento y compilación del frontend. La aceptación de la empresa piloto requiere resolver y volver a probar los controles afectados.</p>
-<h2 id="chapter-4-section-1">1. Ambientes y alcance</h2>
-<ul>
-<li>Pruebas unitarias existentes del backend: Jest, sin datos del cliente.</li>
-<li>Compilación backend: <code>npm run build</code>.</li>
-<li>Comprobación TypeScript frontend: <code>tsc --noEmit --incremental false</code>.</li>
-<li>Integración: servicios reales compilados y PostgreSQL 16 en contenedor temporal, puerto local 55439, base <code>powerpos_docs_test</code>, creada vacía. Se aplicaron las 15 migraciones existentes.</li>
-<li>No se importó el módulo de aplicación completo, por lo que no se iniciaron cron. Notificaciones y eventos externos se sustituyeron por receptores de prueba; no se envió correo, SMS ni WhatsApp ni se accionó hardware.</li>
-<li>Capturas: frontend real en navegador temporal, API interceptada con datos ficticios y escrituras bloqueadas, excepto respuesta sintética de login. No son pruebas de persistencia ni autorización backend.</li>
-</ul>
-<p>La prueba de servicios ocurrió el 16 de septiembre a las 02:44 UTC; la toma final de capturas, a las 05:47 UTC. La hora local de Colombia difiere de UTC. No se utilizaron datos comerciales reales.</p>
-<h2 id="chapter-4-section-2">2. Resultados generales</h2>
+<p>Fecha: 17 de septiembre de 2026 · Versión documental 1.2.</p>
+<p><strong>Conclusión:</strong> API y frontend compilan y se aprobaron 15 escenarios HTTP de tienda, domicilios y puntos en PostgreSQL aislado. Estos resultados no equivalen a aceptación productiva.</p>
+<h2 id="chapter-4-section-1">1. Ambiente y evidencia</h2>
+<p>Se utilizó PostgreSQL 16 temporal en puerto 55439, base independiente <code>powerpos_store_test</code>, con datos ficticios. El script <a href="../../api/test/tienda-integracion.cjs">tienda-integracion.cjs</a> conserva los escenarios reproducibles. No se enviaron mensajes a clientes.</p>
+<p>La migración <code>20260916070000_tienda_domicilios_fidelizacion</code> se comprobó en base aislada y se aplicó a la base local de desarrollo <code>powerpos_dev</code> después de generar un respaldo. No se desplegó en producción.</p>
+<h2 id="chapter-4-section-2">2. Resultados actuales</h2>
 <table>
 <thead>
 <tr>
 <th>Verificación</th>
 <th>Resultado</th>
-<th>Alcance de la conclusión</th>
+<th>Alcance</th>
 </tr>
 </thead>
 <tbody><tr>
+<td>Compilación API</td>
+<td>Aprobada</td>
+<td>Código backend compilable</td>
+</tr>
+<tr>
+<td>Compilación productiva web</td>
+<td>Aprobada, 21 rutas</td>
+<td>Corregidos los dos errores de tipos de 1.1</td>
+</tr>
+<tr>
 <td>Unitarias existentes</td>
-<td>2 suites / 2 pruebas aprobadas</td>
-<td>Controlador de ejemplo e impresión por socket de prueba</td>
+<td>2 pruebas aprobadas</td>
+<td>Cobertura limitada de las suites existentes</td>
 </tr>
 <tr>
-<td>Build backend</td>
-<td>Aprobado</td>
-<td>Código backend compila en el entorno revisado</td>
+<td>Integración HTTP</td>
+<td>15 escenarios aprobados</td>
+<td>Persistencia, permisos y concurrencia del módulo nuevo</td>
 </tr>
 <tr>
-<td>Migraciones en base vacía</td>
-<td>15 aplicadas</td>
-<td>Esquema recreable con esos archivos</td>
+<td>Navegador con API aislada</td>
+<td>Pedido, seguimiento y administración comprobados</td>
+<td>Recarga de seguimiento; móvil de 390 px sin desbordamiento horizontal; sin errores JavaScript registrados</td>
 </tr>
 <tr>
-<td>Escenarios de servicios</td>
-<td>10 aprobados y 3 brechas confirmadas</td>
-<td>Persistencia y lógica de los casos enumerados</td>
-</tr>
-<tr>
-<td>Respaldo/restauración sintética</td>
-<td>Aprobado para controles indicados</td>
-<td>Dump/restauración en segunda base y conteos coincidentes</td>
-</tr>
-<tr>
-<td>Capturas de interfaz</td>
-<td>22 archivos únicos, sin errores de página registrados en la ejecución final</td>
-<td>Presentación con datos sintéticos; 21 utilizados en manual</td>
-</tr>
-<tr>
-<td>TypeScript frontend</td>
-<td>Fallido, 2 errores</td>
-<td>Bloqueo a revisar antes del build productivo</td>
+<td>Migración local</td>
+<td>Aplicada tras respaldo</td>
+<td>Producción pendiente</td>
 </tr>
 </tbody></table>
-<h2 id="chapter-4-section-3">3. Escenarios de servicios comprobados</h2>
+<h2 id="chapter-4-section-3">3. Escenarios HTTP aprobados</h2>
 <table>
 <thead>
 <tr>
 <th>ID</th>
-<th>Escenario</th>
-<th>Resultado observado</th>
+<th>Escenario y resultado</th>
 </tr>
 </thead>
 <tbody><tr>
-<td>AT-01</td>
-<td>Credenciales válidas e inválidas</td>
-<td>Token/rol correctos; clave incorrecta rechazada</td>
+<td>TI-01</td>
+<td>Tienda automática y catálogo público sin datos internos de clientes.</td>
 </tr>
 <tr>
-<td>AT-02</td>
-<td>Vender sin caja</td>
-<td>Rechazo y cero pedidos persistidos</td>
+<td>TI-02</td>
+<td>Fidelización desactivada inicialmente, sin valores comerciales impuestos.</td>
 </tr>
 <tr>
-<td>AT-03</td>
-<td>Abrir caja y repetir apertura</td>
-<td>Primera permitida y segunda secuencial rechazada</td>
+<td>TI-03</td>
+<td>Edición de configuración limitada al administrador de empresa.</td>
 </tr>
 <tr>
-<td>AT-04</td>
-<td>Venta con extra, exclusión y descuento técnico</td>
-<td>Subtotal 24000; total 23000; pan 98; cebolla 1000; queso 960; 23 puntos; ingreso 23000</td>
+<td>TI-04</td>
+<td>Categorías ajenas rechazadas en configuración de fidelización.</td>
 </tr>
 <tr>
-<td>AT-05</td>
-<td>Consultar pedido con otra empresa</td>
-<td>PedidosService rechaza el pedido ajeno</td>
+<td>TI-05</td>
+<td>Productos, cantidades y totales inválidos rechazados.</td>
 </tr>
 <tr>
-<td>AT-06</td>
-<td>Cambiar estado</td>
-<td>Estado actualizado y evento entregado al receptor de prueba</td>
+<td>TI-06</td>
+<td>Clave repetida devuelve la misma solicitud; envío público no crea venta.</td>
 </tr>
 <tr>
-<td>AT-07</td>
-<td>Consumo interno</td>
-<td>Descuenta receta sin ingreso; empresa no habilitada rechazada</td>
+<td>TI-07</td>
+<td>Aceptación sin caja abierta rechazada sin escrituras parciales.</td>
 </tr>
 <tr>
-<td>AT-08</td>
-<td>Entrada en unidad de compra</td>
-<td>2 bolsas de 500 sobre saldo 1000 producen saldo 2000 e historial</td>
+<td>TI-08</td>
+<td>Aceptaciones concurrentes producen una sola venta y respetan exclusión de bebidas.</td>
 </tr>
 <tr>
-<td>AT-09</td>
-<td>Producción de lote</td>
-<td>Se registran 10 porciones y descuento de insumo</td>
+<td>TI-09</td>
+<td>Seguimiento y administración de otra empresa rechazados.</td>
 </tr>
 <tr>
-<td>AT-10</td>
-<td>Anular venta</td>
-<td><strong>Brecha:</strong> persisten inventario consumido, puntos e ingreso</td>
+<td>TI-10</td>
+<td>Asignación de repartidor y transición de entrega comprobadas.</td>
 </tr>
 <tr>
-<td>AT-11</td>
-<td>Cantidad cero</td>
-<td><strong>Brecha:</strong> se acepta un pedido con línea de cantidad cero</td>
+<td>TI-11</td>
+<td>Canje configurable y acumulación sobre base elegible descontada.</td>
 </tr>
 <tr>
-<td>AT-12</td>
-<td>Consulta de inventario</td>
-<td><strong>Brecha:</strong> servicio global sin ámbito empresarial</td>
+<td>TI-12</td>
+<td>Canje inválido rechazado sin escrituras parciales.</td>
 </tr>
 <tr>
-<td>AT-13</td>
-<td>Cierre con diferencia</td>
-<td>Cierra y registra diferencia de 2000 y alerta en escenario de ensayo</td>
+<td>TI-13</td>
+<td>Canjes concurrentes no gastan dos veces el mismo saldo.</td>
+</tr>
+<tr>
+<td>TI-14</td>
+<td>Clientes aislados por empresa y ajuste manual de puntos restringido por rol.</td>
+</tr>
+<tr>
+<td>TI-15</td>
+<td>Rechazo registra motivo sin generar venta.</td>
 </tr>
 </tbody></table>
-<p>AT-05 no demuestra aislamiento completo: solo prueba esa operación de pedidos. AT-07 invoca servicio directamente y no valida guard HTTP de roles. AT-03 no prueba carreras de aperturas simultáneas. No se probaron todas las combinaciones de descuentos, unidades o cambios de estado.</p>
-<h2 id="chapter-4-section-4">4. Respaldo y restauración</h2>
-<p>Se ejecutó <code>pg_dump</code> en formato personalizado de la base sintética y se restauró con <code>pg_restore</code> en la nueva base <code>powerpos_docs_restore</code>, dentro del mismo contenedor aislado.</p>
-<table>
-<thead>
-<tr>
-<th>Tabla</th>
-<th>Base original</th>
-<th>Base restaurada</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>empresas</td>
-<td>2</td>
-<td>2</td>
-</tr>
-<tr>
-<td>pedidos</td>
-<td>2</td>
-<td>2</td>
-</tr>
-<tr>
-<td>ingredientes</td>
-<td>4</td>
-<td>4</td>
-</tr>
-<tr>
-<td>movimientos_financieros</td>
-<td>2</td>
-<td>2</td>
-</tr>
-<tr>
-<td>clientes</td>
-<td>1</td>
-<td>1</td>
-</tr>
-</tbody></table>
-<p>La restauración terminó sin error y los cinco conteos coinciden. No se midió un objetivo contractual de recuperación, no se probó desastre del host ni se restauraron logos reales; faltan esos ensayos en el ambiente que finalmente se despliegue. El resultado no garantiza backups futuros si no se configura su operación.</p>
-<h2 id="chapter-4-section-5">5. Errores de tipos encontrados</h2>
-<table>
-<thead>
-<tr>
-<th>Ubicación</th>
-<th>Hallazgo</th>
-<th>Acción requerida</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>Cocina, uso de <code>pedido.cliente</code></td>
-<td>La interfaz <code>Pedido</code> no declara <code>cliente</code></td>
-<td>Corregir tipo según contrato y recompilar</td>
-</tr>
-<tr>
-<td>Superadministración, formulario de alta</td>
-<td>El estado inicial no declara adminNombre, adminEmail ni adminPassword, usados como claves</td>
-<td>Completar tipo/estado del formulario y recompilar</td>
-</tr>
-</tbody></table>
-<p>Son hallazgos de comprobación, no cambios implementados por esta entrega documental. Una vista de desarrollo que renderiza no equivale a build de producción aprobado.</p>
-<h2 id="chapter-4-section-6">6. Pruebas que siguen pendientes</h2>
-<p>Autorización completa mediante HTTP, cruce de IDs en clientes/caja/inventario, fallos intermedios de escritura, concurrencia, reintentos, credenciales y revocación, stock negativo, restauración integral de archivos, dispositivos reales, integraciones de mensajería, varios equipos/navegadores y jornada operativa con personal. También falta probar la versión desplegada y ejecutar la aceptación firmada de la empresa piloto.</p>
-<h2 id="chapter-4-section-7">7. Evidencia reproducible y decisión</h2>
-<p>El expediente técnico conserva scripts de captura y prueba, <a href="../referencias/resultados-aceptacion.json">resultados JSON</a> y <a href="../cliente/capturas/capturas.json">registro de capturas</a>. Los scripts protegen la base de destino y no borran una base existente para repetir el ensayo.</p>
-<p><strong>Estado de entrega:</strong> documentación ampliada y ensayos parciales completados; piloto productivo <strong>no aprobado aún</strong>. Condiciones para avanzar: correcciones y repruebas de bloqueos, instalación definida, personal capacitado y acta basada en evidencia del ambiente real.</p>
+<p>No se probaron todos los endpoints ni todas las combinaciones de reglas, carga o fallos externos. Los valores monetarios de ensayo no son tarifas recomendadas.</p>
+<h2 id="chapter-4-section-4">4. Evidencia histórica y correcciones</h2>
+<p>Los <a href="../referencias/resultados-aceptacion.json">resultados de aceptación 1.1</a> corresponden al ensayo anterior en <code>powerpos_docs_test</code>: diez escenarios aprobados y tres brechas observadas. Se conservan sin alterarlos. La cantidad cero entonces aceptada ahora se rechaza; los puntos fijos fueron reemplazados por configuración empresarial. Los errores de tipos de Cocina y superadministración se corrigieron y el build web aprobó.</p>
+<p>La restauración sintética de 1.1 terminó sin error y conservó los conteos de empresas (2), pedidos (2), ingredientes (4), movimientos financieros (2) y clientes (1). No se repitió esa restauración durante esta actualización documental ni se acreditó recuperación de archivos productivos.</p>
+<p>Las capturas antiguas del <a href="../cliente/capturas/capturas.json">registro</a> usan API interceptada y datos sintéticos. Las cinco nuevas de tienda, configuración, puntos y domicilios proceden del ensayo con API y base aisladas. Una captura por sí sola no acredita persistencia ni autorización.</p>
+<h2 id="chapter-4-section-5">5. Pendientes y aceptación</h2>
+<p>Quedan pendientes aislamiento de inventario, revisión integral de caja y permisos, arqueo por medio, devoluciones con compensación, idempotencia del POS directo, carga, hardware, restauración completa y operación con personal. Ver <a href="../11-brechas-y-evolucion.md">brechas</a>.</p>
+<p>WhatsApp abre una conversación y no importa pedidos automáticamente. No hay pasarela integrada; el negocio verifica el pago declarado.</p>
+<p><strong>Estado:</strong> documentación y comprobaciones del módulo actualizadas; aceptación productiva pendiente de corregir los bloqueos aplicables, probar la instalación definitiva, capacitar al piloto y completar el acta con evidencia real.</p>
 </section><section class="chapter" id="chapter-5"><h1>Acta de entrega y aceptación — PowerPOS Pioneers</h1>
-<p><strong>Estado: plantilla reutilizable para el piloto y siguientes empresas.</strong> El sistema todavía no está desplegado. No acredita entrega ni aceptación hasta completar los datos, evidencias y firmas. Versión de plantilla: 1.1.</p>
+<p><strong>Estado: plantilla reutilizable para el piloto y siguientes empresas.</strong> El sistema todavía no está desplegado. No acredita entrega ni aceptación hasta completar los datos, evidencias y firmas. Versión de plantilla: 1.2.</p>
 <p>Adjuntar el <a href="#chapter-1">alcance por empresa</a>, el <a href="#chapter-4">informe de validación previa</a> y los resultados del ambiente real. Los ensayos documentales no sustituyen la aceptación del adquirente.</p>
 <h2 id="chapter-5-section-1">Identificación</h2>
 <table>
@@ -1057,4 +1039,53 @@
 <p>Proveedor — nombre, cargo, firma y fecha: __________________________________________</p>
 <p>Cliente — nombre, cargo, firma y fecha: ____________________________________________</p>
 <p>Responsable técnico — nombre, firma y fecha: _______________________________________</p>
+<h2 id="chapter-5-section-9">Alcance adicional 1.2 por confirmar con la empresa</h2>
+<table>
+<thead>
+<tr>
+<th>Capacidad o dato</th>
+<th>Valor acordado / evidencia</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Enlace público de la tienda y marca</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Sucursal receptora, horarios y revisión</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Zonas, tarifas, pedido mínimo y cobro</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>WhatsApp propio; sin importación automática</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Domiciliarios y flujo de entrega</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Compra elegible para ganar un punto</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Descuento por punto canjeado</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Categorías/productos excluidos y vigencia</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Prueba web → cajero → domiciliario → entregado</td>
+<td>____________________</td>
+</tr>
+<tr>
+<td>Cancelaciones y devoluciones pendientes informadas</td>
+<td>____________________</td>
+</tr>
+</tbody></table>
 </section></main><button class="print" onclick="window.print()">Imprimir o guardar como PDF</button></body></html>

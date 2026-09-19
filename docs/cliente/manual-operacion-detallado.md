@@ -1,6 +1,6 @@
 # Manual de operación de PowerPOS Pioneers
 
-Versión documental 1.1 · 16 de septiembre de 2026 · Edición para piloto y futuras empresas adquirentes.
+Versión documental 1.2 · 17 de septiembre de 2026 · Edición para piloto y futuras empresas adquirentes.
 
 Este manual explica qué hace cada pantalla, quién la utiliza, qué datos ingresar, qué resultado comprobar y cómo actuar ante un problema. Está dirigido al administrador, gerente, cajero y personal de cocina. La primera implantación será un piloto en una empresa; la expansión a otras empresas requiere validar previamente la separación de sus datos.
 
@@ -76,7 +76,7 @@ El Dashboard reúne indicadores de venta, gráficos, caja, alertas y pedidos rec
 | Alertas | Eventos que necesitan revisión | Registrar responsable y solución |
 | Pedidos recientes | Últimos pedidos y estado | Buscar una operación antes de reintentar |
 
-El listado de pedidos de API devuelve hasta 50 recientes. No asumir que la pantalla muestra todo el historial. El selector de estado de Dashboard puede cambiar un pedido a ANULADO, pero no revierte su inventario, puntos ni ingreso: aplicar el procedimiento de excepciones.
+Las solicitudes web RECIBIDO se pueden rechazar sin venta. Una venta web aceptada o con movimientos de puntos bloquea la anulación directa y requiere conciliación. No existe todavía un flujo automático de devolución que revierta ingreso e inventario; no presentar ANULADO como reembolso.
 
 ## 5. Apertura de caja
 
@@ -136,7 +136,7 @@ No crear clientes duplicados para resolver un error de búsqueda. La venta puede
 | Hamburguesa clásica | 2 × 10000 | 20000 |
 | Extra queso por hamburguesa | 2 × 1 × 2000 | 4000 |
 | Total sin descuento | 20000 + 4000 | 24000 |
-| Puntos si se asocia cliente | parte entera de 24000 / 1000 | 24 |
+| Puntos si se asocia cliente | Según programa activo, base elegible y compra por punto configurada | 0 si el programa está desactivado |
 
 El campo de descuento existe en API, pero no se identificó un control de descuento en el POS revisado. No enseñar al cajero un botón que no está presente. Las pruebas técnicas de descuento se ejecutaron directamente sobre el servicio.
 
@@ -324,9 +324,9 @@ Para modificar, usar edición, cambiar los campos y guardar. Desactivar una fich
 
 ### Administrar puntos
 
-Abrir el control de puntos, elegir **Agregar puntos** o **Redimir puntos**, indicar una cantidad positiva y aplicar la política aprobada por el negocio. Registrar motivo externamente si la pantalla no lo solicita. Redimir puntos solo cambia el saldo de puntos: no hay equivalencia monetaria ni descuento automático acreditados en el POS.
+Para canjear, seleccionar al cliente en POS e indicar cuántos puntos usar: el descuento se calcula con el valor configurado por su empresa y queda registrado en la venta. El control de Clientes permite ajustes positivos manuales solo al administrador; documentar el motivo. La configuración de acumulación, canje y exclusiones está en Puntos.
 
-Una venta asociada suma la parte entera de total / 1000. No repetir la asignación manual de puntos que el sistema ya sumó. Una anulación no los retira automáticamente.
+La empresa define cuánto comprar para ganar un punto y cuánto descuento representa al canjearlo. El programa inicia desactivado, conserva los saldos anteriores y permite excluir categorías y productos. La base elegible recibe su parte proporcional de los descuentos; domicilio excluido y redondeo hacia abajo. No hay valor obligatorio.
 
 ## 16. Finanzas y movimientos
 
@@ -430,7 +430,7 @@ Omitir monto puede usar automáticamente el esperado; no acredita conteo. Una di
 
 Antes de confirmar, corregir carrito y selección. Después de confirmar, no borrar datos ni repetir el pedido como mecanismo de corrección. Registrar incidencia y solicitar revisión del supervisor.
 
-Se comprobó que **ANULADO no devuelve inventario ni puntos y mantiene el ingreso de la venta**. Hasta tener un procedimiento compensatorio aprobado y probado, restringir la anulación operativa y resolver cada caso con soporte. La [guía de procedimientos](procedimientos-operativos.md) define qué registrar y cuándo detener operación.
+Las solicitudes web RECIBIDO se pueden rechazar sin venta. Una venta web aceptada o con movimientos de puntos bloquea la anulación directa y requiere conciliación. No existe todavía un flujo automático de devolución que revierta ingreso e inventario; no presentar ANULADO como reembolso.
 
 No hay modo sin conexión implementado. Si se pierde red/servicio, usar el registro de contingencia aprobado, distinguir pedidos ya guardados de pedidos pendientes y conciliar antes de ingresar información nuevamente.
 
@@ -456,3 +456,7 @@ El reporte debe contener fecha/hora, empresa/sucursal, usuario sin clave, pantal
 El sistema está en preparación para una primera empresa. La facturación electrónica solo tiene una bandera de configuración, no emisión acreditada; no se ofrece como lista. Preparaciones con saldo real, reparto, pagos bancarios integrados y operación sin conexión tampoco se consideran entregados. La impresión requiere equipo real probado.
 
 La documentación está lista como material reutilizable de capacitación. El inicio operativo exige cerrar los bloqueos del piloto y comprobar el ambiente real. Una captura o una prueba aislada aprobada no sustituye la aceptación conjunta del negocio.
+
+## 25. Tienda web, Domicilios y Puntos
+
+Consultar la [guía operativa de estas pantallas](tienda-domicilios-y-puntos.md), incluida en el manual de entrega 1.2. Mi tienda y Puntos corresponden al administrador. El cajero revisa Domicilios y recibe un aviso de pendientes; los repartidores solo ven sus entregas.

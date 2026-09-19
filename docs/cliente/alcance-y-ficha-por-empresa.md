@@ -1,6 +1,6 @@
 # Alcance y ficha por empresa
 
-Plantilla reutilizable, versión 1.1. Crear una copia por adquirente cuando se concrete la implantación. Para el piloto actual no existe despliegue ni cliente identificado en este expediente; no es necesario inventar esos datos para usar el manual de capacitación.
+Plantilla reutilizable, versión 1.2. Crear una copia por adquirente cuando se concrete la implantación. Para el piloto actual no existe despliegue ni cliente identificado en este expediente; no es necesario inventar esos datos para usar el manual de capacitación.
 
 ## Estado del producto y de la entrega
 
@@ -24,7 +24,7 @@ Registrar al iniciar un cliente: identificador de empresa, razón/nombre comerci
 | Caja y eventos | Sí; criterio de arqueo por acordar | Por seleccionar | Pendiente |
 | Catálogo y recetas | Sí | Por seleccionar | Pendiente |
 | Inventario | Sí, global; aislamiento pendiente | Por seleccionar | Pendiente |
-| Clientes y puntos | Sí; controles por empresa pendientes en algunas rutas | Por seleccionar | Pendiente |
+| Clientes y puntos | Sí; reglas configurables y controles por empresa en rutas de clientes | Por seleccionar | Pendiente |
 | Finanzas y reportes | Sí | Por seleccionar | Pendiente |
 | Usuarios y sucursales | Sí; autorización integral pendiente | Por seleccionar | Pendiente |
 | Impresión/cajón | Implementación TCP; requiere equipo | Por seleccionar | Pendiente |
@@ -43,3 +43,18 @@ Manual ilustrado y guía rápida; procedimientos; capacitación acordada; ficha 
 ## Control de cambios
 
 Registrar versión entregada, módulos añadidos/retirados, fecha de capacitación adicional, cambios de horario/equipos y resultados de reprueba. La actualización del manual debe acompañar cambios que alteren instrucciones de operación.
+
+## Alcance adicional 1.2 por confirmar con la empresa
+
+| Capacidad o dato | Valor acordado / evidencia |
+| --- | --- |
+| Enlace público de la tienda y marca | ____________________ |
+| Sucursal receptora, horarios y revisión | ____________________ |
+| Zonas, tarifas, pedido mínimo y cobro | ____________________ |
+| WhatsApp propio; sin importación automática | ____________________ |
+| Domiciliarios y flujo de entrega | ____________________ |
+| Compra elegible para ganar un punto | ____________________ |
+| Descuento por punto canjeado | ____________________ |
+| Categorías/productos excluidos y vigencia | ____________________ |
+| Prueba web → cajero → domiciliario → entregado | ____________________ |
+| Cancelaciones y devoluciones pendientes informadas | ____________________ |

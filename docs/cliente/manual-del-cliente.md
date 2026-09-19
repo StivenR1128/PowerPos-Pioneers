@@ -1,6 +1,6 @@
 # PowerPOS Pioneers — Manual del cliente
 
-Versión documental 1.0 · Fecha: 15 de septiembre de 2026.
+Versión documental 1.2 · Fecha: 15 de septiembre de 2026.
 
 Este manual permite preparar y operar el sistema. La URL, empresa, funciones habilitadas y datos de soporte deben constar en el acta de entrega. La versión definitiva debe corresponder al sistema instalado y a las pruebas aprobadas con el proveedor.
 
@@ -86,7 +86,7 @@ Las preparaciones agrupan ingredientes y la API permite registrar producción po
 
 ## 10. Clientes y puntos
 
-Buscar al cliente antes de crear otro. Registrar sus datos necesarios, asociarlo al pedido y consultar historial. El código revisado suma un punto por cada 1000 del total de venta asociada. Acordar la política de redención con el administrador; no prometer equivalencias de puntos que no estén definidas.
+La empresa define cuánto comprar para ganar un punto y cuánto descuento representa al canjearlo. El programa inicia desactivado, conserva los saldos anteriores y permite excluir categorías y productos. La base elegible recibe su parte proporcional de los descuentos; domicilio excluido y redondeo hacia abajo. No hay valor obligatorio.
 
 ## 11. Finanzas y reportes
 
@@ -110,7 +110,7 @@ El cálculo actual de esperado suma la base y las ventas de todos los medios. No
 
 ## 14. Correcciones y anulaciones
 
-Solicitar intervención del supervisor ante pedido incorrecto. En la versión revisada, cambiar el estado a ANULADO no devuelve automáticamente inventario, puntos ni ingreso financiero. El proveedor debe definir y probar el procedimiento de corrección antes de habilitar su uso operativo. No aplicar ajustes duplicados ni borrar registros para ocultar errores.
+Las solicitudes web RECIBIDO se pueden rechazar sin venta. Una venta web aceptada o con movimientos de puntos bloquea la anulación directa y requiere conciliación. No existe todavía un flujo automático de devolución que revierta ingreso e inventario; no presentar ANULADO como reembolso.
 
 ## 15. Problemas frecuentes
 
@@ -128,3 +128,7 @@ Solicitar intervención del supervisor ante pedido incorrecto. En la versión re
 ## 16. Solicitar soporte
 
 Informar empresa/sucursal, fecha/hora, pantalla, número de pedido si existe, qué intentó hacer y mensaje mostrado. No enviar contraseñas ni tokens. El canal, horario y tiempos de atención serán los acordados en el acta. Cuando el sistema no esté disponible, aplicar el procedimiento de contingencia aprobado por el negocio y conciliar registros al restablecerse para evitar duplicados.
+
+## Tienda web y fidelización por empresa
+
+La empresa define cuánto comprar para ganar un punto y cuánto descuento representa al canjearlo. El programa inicia desactivado, conserva los saldos anteriores y permite excluir categorías y productos. La base elegible recibe su parte proporcional de los descuentos; domicilio excluido y redondeo hacia abajo. No hay valor obligatorio. La guía detallada de [tienda, domicilios y puntos](tienda-domicilios-y-puntos.md) explica configuración, compra, revisión del cajero y entrega.

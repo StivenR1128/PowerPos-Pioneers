@@ -1,6 +1,6 @@
 # Acta de entrega y aceptación — PowerPOS Pioneers
 
-**Estado: plantilla reutilizable para el piloto y siguientes empresas.** El sistema todavía no está desplegado. No acredita entrega ni aceptación hasta completar los datos, evidencias y firmas. Versión de plantilla: 1.1.
+**Estado: plantilla reutilizable para el piloto y siguientes empresas.** El sistema todavía no está desplegado. No acredita entrega ni aceptación hasta completar los datos, evidencias y firmas. Versión de plantilla: 1.2.
 
 Adjuntar el [alcance por empresa](alcance-y-ficha-por-empresa.md), el [informe de validación previa](informe-validacion.md) y los resultados del ambiente real. Los ensayos documentales no sustituyen la aceptación del adquirente.
 
@@ -97,3 +97,18 @@ Proveedor — nombre, cargo, firma y fecha: ____________________________________
 Cliente — nombre, cargo, firma y fecha: ____________________________________________
 
 Responsable técnico — nombre, firma y fecha: _______________________________________
+
+## Alcance adicional 1.2 por confirmar con la empresa
+
+| Capacidad o dato | Valor acordado / evidencia |
+| --- | --- |
+| Enlace público de la tienda y marca | ____________________ |
+| Sucursal receptora, horarios y revisión | ____________________ |
+| Zonas, tarifas, pedido mínimo y cobro | ____________________ |
+| WhatsApp propio; sin importación automática | ____________________ |
+| Domiciliarios y flujo de entrega | ____________________ |
+| Compra elegible para ganar un punto | ____________________ |
+| Descuento por punto canjeado | ____________________ |
+| Categorías/productos excluidos y vigencia | ____________________ |
+| Prueba web → cajero → domiciliario → entregado | ____________________ |
+| Cancelaciones y devoluciones pendientes informadas | ____________________ |

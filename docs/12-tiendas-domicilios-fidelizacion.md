@@ -1,6 +1,6 @@
 # Tienda por empresa, domicilios y fidelización configurable
 
-Versión funcional 1.2 · 17 de septiembre de 2026. Complementa los manuales 1.1: las reglas de puntos fijas de esos documentos ya no son vigentes.
+Versión funcional 1.2 · 17 de septiembre de 2026. Integrado en los manuales y entregables 1.2. Sustituye las reglas fijas de puntos de versiones anteriores.
 
 ## Qué se incorpora
 

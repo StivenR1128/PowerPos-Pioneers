@@ -2,6 +2,9 @@ node_modules/
 .env
 .next/
 dist/
+!landing/dist/
+!landing/dist/**
+backups/landing-git-*/
 powerpos-data/
 *.log
 backups/*.dump

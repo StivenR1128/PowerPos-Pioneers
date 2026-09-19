@@ -6,7 +6,7 @@ Base local: `http://localhost:3000`. No hay prefijo global `/api` en `main.ts`. 
 
 Enviar `Authorization: Bearer <TOKEN>` a rutas protegidas. Login y registro público de empresa no declaran guard. `/` es una ruta de ejemplo. Las respuestas de error de NestJS suelen incluir `statusCode`, `message` y `error`, pero no existe un contrato uniforme documentado para errores de Prisma no interceptados.
 
-[Catálogo completo de 88 rutas](referencias/catalogo-api.md): generado desde los 19 controladores. Incluye guards de clase, roles y parámetros anotados.
+[Catálogo completo de rutas](referencias/catalogo-api.md): generado desde todas las clases de controlador. Incluye guards de clase, roles y parámetros anotados.
 
 ## Autenticación
 
@@ -75,7 +75,7 @@ El servidor toma precios del catálogo y crea estado PENDIENTE. Devuelve pedido 
 { "estado": "LISTO" }
 ```
 
-Actualiza estado y emite evento. ANULADO no desencadena compensación de inventario, puntos o ingresos. Los valores del enum están en el diccionario; la secuencia de transición no se valida.
+Las solicitudes web RECIBIDO se pueden rechazar sin venta. Una venta web aceptada o con movimientos de puntos bloquea la anulación directa y requiere conciliación. No existe todavía un flujo automático de devolución que revierta ingreso e inventario; no presentar ANULADO como reembolso. Los estados de preparación siguen disponibles; un pedido anulado no puede reabrirse.
 
 `POST /caja/:id/cerrar`
 
@@ -158,3 +158,21 @@ También se emite `ACTUALIZADO`. El canal filtra por empresa, vive en memoria y 
 | 500 | Fallos no controlados; no interpretar como garantía de que nada se guardó |
 
 No se identificó idempotencia para ventas, versionado de API ni documentación OpenAPI. Un error de red al vender requiere consultar el último pedido antes de reintentar. Los cuerpos con `any` no constituyen contratos validados en tiempo de ejecución.
+
+## API de tiendas
+
+| Método y ruta | Acceso | Contrato principal |
+| --- | --- | --- |
+| GET /tiendas/:slug | Público | Marca, configuración pública y catálogo de la empresa activa. |
+| POST /tiendas/:slug/pedidos | Público limitado | clave, nombre, telefono, direccion, zona, metodoPago, observacion, items[{productoId,cantidad}], totalEsperado. Devuelve id, estado, total. |
+| GET /tiendas/:slug/pedidos/:id | Público con identificador de seguimiento | Estado, total, motivo y número/estado de venta; no dirección, teléfono o saldo. |
+| GET /tienda-admin/configuracion | Administrador, gerente, cajero | slug, tienda y fidelizacion de empresa autenticada. |
+| PATCH /tienda-admin/configuracion | ADMIN_EMPRESA | Actualización parcial de slug, tienda o fidelizacion; valida propiedad, tipos y límites. |
+| GET /tienda-admin/resumen | Administrador, gerente, cajero | Conteo pendientes; cajero limitado a su sucursal. |
+| GET /tienda-admin/pedidos | Administrador, gerente, cajero, domiciliario | Últimos 100 registros del ámbito autorizado; domiciliario solo asignados. |
+| GET /tienda-admin/repartidores | Administrador, gerente, cajero | Usuarios DOMICILIARIO activos de empresa. |
+| PATCH /tienda-admin/pedidos/:id | Roles autorizados según acción | accion: ACEPTAR, RECHAZAR, EN_CAMINO o ENTREGADO; clienteId opcional verificado, motivo o repartidorId según acción. |
+
+POST /pedidos admite puntosCanjeados; el servidor calcula descuento y puntosGanados. Pedido conserva puntosGanados, puntosCanjeados, valorPuntoAplicado y costoDomicilio. La ruta anterior POST /clientes/:id/puntos/redimir rechaza con instrucción de canjear en POS; ajustes positivos se reservan a ADMIN_EMPRESA.
+
+Errores principales: 400 por entrada inválida, tienda pausada, caja cerrada o saldo insuficiente; 401 por sesión ausente; 403 por rol/recurso no autorizado; 404 por empresa/solicitud no disponible en el ámbito; 409 por enlace repetido, precio cambiado o revisión repetida; 429 por límite de IP. Sin transacción externa de pago.

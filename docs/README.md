@@ -1,8 +1,8 @@
 # Documentación de PowerPOS Pioneers
 
-> Actualización funcional 1.2: consultar [Tienda por empresa, domicilios y fidelización configurable](12-tiendas-domicilios-fidelizacion.md). Sustituye la regla fija de puntos de los manuales/PDF 1.1. Las nuevas funciones requieren aplicar la migración y desplegar la aplicación; la landing comercial es independiente.
+> Paquete documental consolidado 1.2: tiendas por empresa, domicilios y fidelización integrados en requisitos, arquitectura, manuales, pruebas y entregables. Migración aplicada en desarrollo local tras respaldo; despliegue público pendiente.
 
-Versión documental: 1.1 · Actualización: 16 de septiembre de 2026 · Idioma: español.
+Versión documental: 1.2 · Actualización: 17 de septiembre de 2026 · Idioma: español.
 
 Este expediente describe el código disponible en el espacio de trabajo, incluidos cambios locales todavía no confirmados en Git. Se prepara para entrega académica, mantenimiento técnico y documentación de adquirentes; no constituye un acta de aceptación ni una certificación de funcionamiento en producción.
 
@@ -31,6 +31,7 @@ Abrir en navegador y usar **Imprimir o guardar como PDF**. El contenido y los di
 | [08. Instalación y operación](08-instalacion-y-operacion.md) | Configuración, ejecución, respaldos, despliegue y diagnóstico |
 | [09. Manual de usuario](09-manual-de-usuario.md) | Operación por pantalla y rol |
 | [10. Pruebas y trazabilidad](10-pruebas-y-trazabilidad.md) | Casos de prueba, cobertura documental y aceptación |
+| [12. Tiendas, domicilios y fidelización](12-tiendas-domicilios-fidelizacion.md) | Configuración, flujo web, canje y activación |
 | [11. Brechas y evolución](11-brechas-y-evolucion.md) | Limitaciones comprobables y trabajo pendiente |
 
 ## Cómo interpretar los estados
@@ -46,13 +47,13 @@ La fuente principal es [schema.prisma](../api/prisma/schema.prisma), seguida de 
 
 Los diagramas están en Mermaid, embebidos en Markdown y como archivos editables en [diagramas](diagramas/). Pueden visualizarse en un lector compatible con Mermaid. El diagrama completo conserva todas las relaciones; los diagramas por dominio facilitan su lectura.
 
-Desde la raíz del repositorio, ejecutar `node docs/tools/generar-referencias.mjs` después de cambiar Prisma o los controladores. Regenera modelo, diccionario y catálogo de rutas; los requerimientos y manuales se revisan manualmente. No modifica la aplicación ni la base de datos.
+Con las dependencias de api instaladas (incluido TypeScript), desde la raíz del repositorio ejecutar `node docs/tools/generar-referencias.mjs` después de cambiar Prisma o los controladores. Regenera modelo, diccionario y catálogo de rutas; los requerimientos y manuales se revisan manualmente. No modifica la aplicación ni la base de datos.
 
 `node docs/tools/validar-documentacion.mjs` comprueba enlaces, modelos y trazabilidad explícita. Para reconstruir HTML/SVG, ejecutar `node docs/tools/exportar-html.cjs RUTA_NODE_MODULES` con dependencias de artefactos que contengan `marked` y `@viz-js/viz`; no requiere modificar dependencias de la aplicación.
 
-## Datos de entrega pendientes
-
 ## PDF listos para entrega
+
+- [Expediente académico y técnico](../output/pdf/documentacion-academica-tecnica.pdf): requisitos, casos de uso, arquitectura, ER, diccionario y contratos.
 
 - [Manual ilustrado del cliente](../output/pdf/manual-del-cliente.pdf): operación por pantalla, ejemplos y soporte.
 - [Guía de piloto y entrega](../output/pdf/guia-piloto-y-entrega.pdf): procedimientos, capacitación, alcance y resultados de validación.
@@ -66,3 +67,4 @@ Autor(es), institución, programa, asignatura, docente, ciudad, fecha de entrega
 | --- | --- | --- | --- |
 | 1.0 | 2026-09-15 | Primera documentación basada en código local | Pendiente del responsable del proyecto |
 | 1.1 | 2026-09-16 | Manual ilustrado, procedimientos, piloto, capacitación y pruebas aisladas con resultados | Aceptación productiva pendiente |
+| 1.2 | 2026-09-17 | Tienda, domicilios y fidelización consolidados; API y ER regenerados; pruebas HTTP y builds aprobados; entregables actualizados | Aceptación productiva pendiente |

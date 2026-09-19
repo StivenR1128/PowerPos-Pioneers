@@ -154,3 +154,9 @@ Si la base de prueba ya existe, detenerse y elegir otra base; no borrarla autom�
 ## Responsables por asignar
 
 Proveedor: alojamiento, actualizaciones, soporte y copias según contrato. Cliente: usuarios autorizados, catálogo, equipos y conteo físico. La distribución final, los horarios y los tiempos de respuesta deben quedar en el acta/contrato de entrega; no se asumen aquí.
+
+## Activación de tiendas y fidelización (1.2)
+
+Consultar [guía de activación](12-tiendas-domicilios-fidelizacion.md). Migración 20260916070000_tienda_domicilios_fidelizacion aplicada y verificada primero en prueba aislada y luego en powerpos_dev local, respaldada previamente en backups/powerpos_pre_tienda_20260917.dump. No hay despliegue público del sistema. En otra instalación: respaldo, prisma migrate deploy, prisma generate, compilar API/web y reiniciar procesos. Configurar NEXT_PUBLIC_API_URL antes de compilar web; debe ser una URL HTTPS accesible desde los dispositivos de compradores. Verificar URLs públicas de logos/portadas y persistencia de uploads. Activar sucursal, zonas y recepción desde Mi tienda; definir fidelización desde Puntos.
+
+API y frontend compilaron en revisión 1.2; los dos errores de tipos documentados en 1.1 fueron corregidos. Una compilación exitosa no sustituye la prueba del despliegue ni la aprobación del piloto.

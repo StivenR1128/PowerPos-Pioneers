@@ -1,0 +1,55 @@
+erDiagram
+  Empresa {
+    Int id PK
+    String nombre
+    String nit UK
+    String tiendaSlug UK
+  }
+  Sucursal {
+    Int id PK
+    Int empresaId FK
+    String nombre
+  }
+  Usuario {
+    Int id PK
+    Int empresaId FK "nullable"
+    Int sucursalId FK "nullable"
+    String nombre
+    String email UK
+  }
+  Cliente {
+    Int id PK
+    Int empresaId FK
+    String nombre
+  }
+  Pedido {
+    Int id PK
+    Int sucursalId FK
+    Int usuarioId FK
+    Int clienteId FK "nullable"
+    Int cajaId FK "nullable"
+    String numero UK
+    EstadoPedido estado
+    Decimal total
+  }
+  PedidoWeb {
+    String id PK
+    Int empresaId FK
+    Int sucursalId FK
+    String estado
+    String nombre
+    Decimal total
+    Int pedidoId FK "nullable"
+    Int repartidorId FK "nullable"
+  }
+  Empresa ||..o{ Sucursal : "empresaId"
+  Empresa |o..o{ Usuario : "empresaId"
+  Sucursal |o..o{ Usuario : "sucursalId"
+  Empresa ||..o{ Cliente : "empresaId"
+  Sucursal ||..o{ Pedido : "sucursalId"
+  Usuario ||..o{ Pedido : "usuarioId"
+  Cliente |o..o{ Pedido : "clienteId"
+  Empresa ||..o{ PedidoWeb : "empresaId"
+  Pedido |o..o| PedidoWeb : "pedidoId"
+  Sucursal ||..o{ PedidoWeb : "sucursalId"
+  Usuario |o..o{ PedidoWeb : "repartidorId"

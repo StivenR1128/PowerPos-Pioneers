@@ -1,5 +1,6 @@
-// Genera documentación de referencia sin dependencias ni acceso a la base de datos.
+// Genera documentación de referencia con TypeScript instalado en api; sin acceso a la base de datos.
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -27,7 +28,8 @@ for (const model of models) {
 const relations = models.flatMap((m) => m.fields.filter((f) => f.relation && f.attrs.includes('fields:')).map((f) => {
   const fks = f.attrs.match(/fields:\s*\[([^\]]+)\]/)[1].split(',').map((s) => s.trim());
   const refs = f.attrs.match(/references:\s*\[([^\]]+)\]/)[1].split(',').map((s) => s.trim());
-  return { child: m.name, parent: f.base, optional: f.type.endsWith('?'), fks, refs, field: f.name };
+  const unique = fks.length === 1 && m.fields.some(field => field.name === fks[0] && field.attrs.includes('@unique'));
+  return { child: m.name, parent: f.base, optional: f.type.endsWith('?'), fks, refs, field: f.name, unique };
 }));
 const enums = [...schema.matchAll(/^enum (\w+) \{([\s\S]*?)^\}/gm)];
 
@@ -63,11 +65,12 @@ const diagram = (selected) => {
     out += '  }\n';
   }
   for (const r of relations.filter((r) => chosen.has(r.child) && chosen.has(r.parent))) {
-    out += `  ${r.parent} ${r.optional ? '|o' : '||'}..o{ ${r.child} : "${r.fks.join(',')}"\n`;
+    out += `  ${r.parent} ${r.optional ? '|o' : '||'}..${r.unique ? 'o|' : 'o{'} ${r.child} : "${r.fks.join(',')}"\n`;
   }
   return out;
 };
 const groups = [
+  ['08-tienda-domicilios', 'Tienda, domicilios y fidelización', ['Empresa','Sucursal','Usuario','PedidoWeb','Pedido','Cliente']],
   ['01-organizacion', 'Organización y auditoría', ['Empresa', 'Sucursal', 'Usuario', 'Auditoria']],
   ['02-catalogo', 'Catálogo, recetas y adicionales', ['Empresa', 'Categoria', 'Producto', 'Ingrediente', 'ProductoIngrediente', 'Adicional', 'ProductoAdicional']],
   ['03-ventas-caja', 'Ventas, clientes y detalles', ['Cliente', 'Pedido', 'DetallePedido', 'Producto', 'Adicional', 'DetallePedidoAdicional']],
@@ -86,34 +89,43 @@ for (const [file, title, selected] of groups) {
   modelDoc += `## ${title}\n\n[Archivo Mermaid](diagramas/er-${file}.mmd)\n\n\`\`\`mermaid\n${d}\`\`\`\n\n`;
 }
 modelDoc += '## Relaciones físicas completas\n\n| Tabla hija / modelo | FK | Modelo padre / clave | Padre por hijo | Hijos por padre |\n| --- | --- | --- | --- | --- |\n';
-for (const r of relations) modelDoc += `| ${r.child} | ${r.fks.join(', ')} | ${r.parent}.${r.refs.join(', ')} | ${r.optional ? '0..1' : '1'} | 0..N |\n`;
+for (const r of relations) modelDoc += `| ${r.child} | ${r.fks.join(', ')} | ${r.parent}.${r.refs.join(', ')} | ${r.optional ? '0..1' : '1'} | ${r.unique ? '0..1' : '0..N'} |\n`;
 modelDoc += '\n## Decisiones y limitaciones del modelo\n\n- Las tablas puente resuelven relaciones muchos a muchos; ProductoIngrediente, ProductoAdicional y ProductoPreparacion impiden pares duplicados mediante claves únicas compuestas.\n- Categoria contiene una autorrelación opcional parentId. La FK no evita ciclos jerárquicos por sí misma.\n- Usuario puede no tener empresa ni sucursal; esto permite representar SUPERADMIN, aunque el esquema no limita esa excepción a ese rol.\n- Ingrediente no tiene empresaId ni sucursalId: su stock es global. MovimientoInventario tampoco tiene FK directa a empresa o sucursal.\n- Pedido pertenece a empresa a través de Sucursal; ConsumoEmpleado y MovimientoFinanciero guardan empresa y sucursal, pero sus FKs independientes no aseguran coincidencia empresarial.\n- Auditoria.entidadId es una referencia lógica polimórfica, no una FK a cada entidad auditada.\n- ConsumoEmpleado.empleadoNombre es texto; usuarioId identifica quién registra. No existe entidad Empleado.\n- DetallePedido.exclusiones es un arreglo de nombres, no una tabla de relación con Ingrediente.\n- LotePreparacion no tiene saldo consumido, caducidad ni vínculo de asignación a ventas.\n- No hay entidades de factura electrónica, impuestos de línea, pagos múltiples por pedido ni stock por sucursal.\n- Activo y disponible expresan estados diferentes; desactivar no equivale a borrar físicamente.\n- No se declararon onDelete explícitos en estas relaciones. Este documento no atribuye borrado en cascada; revisar las migraciones antes de cualquier eliminación.\n';
 write('05-modelo-de-datos.md', modelDoc);
 
 const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)]);
 const controllers = walk(path.join(root, 'api/src')).filter((p) => p.endsWith('.controller.ts')).sort();
 let catalog = '# Catálogo de rutas declarado en código\n\nGenerado desde controladores NestJS. Incluye decoradores, parámetros anotados y referencias; no es OpenAPI ni garantiza validación de cuerpos. `any` requiere consultar servicio. Los roles reflejan decoradores, no reglas inferidas de la interfaz.\n\n';
-let routes = 0;
+const require = createRequire(import.meta.url);
+const ts = require(path.join(root, 'api/node_modules/typescript'));
+let routes = 0, controllerClasses = 0;
+const decorators = node => (ts.canHaveDecorators(node) ? ts.getDecorators(node) : []) || [];
+const calls = node => decorators(node).map(d => d.expression).filter(ts.isCallExpression);
+const nameOf = d => d.expression.getText();
+const argsOf = d => d.arguments.map(a => ts.isStringLiteral(a) ? a.text : a.getText());
 for (const file of controllers) {
-  const src = fs.readFileSync(file, 'utf8');
-  const prefix = src.match(/@Controller\(\s*['"]([^'"]*)['"]\s*\)/)?.[1] || '';
-  const head = src.slice(0, src.indexOf('export class'));
-  const guards = [...head.matchAll(/@UseGuards\(([^)]+)\)/g)].map((m) => m[1]).join(', ');
-  const classRoles = head.match(/@Roles\(([^)]+)\)/)?.[1];
-  const matches = [...src.matchAll(/@(Get|Post|Patch|Put|Delete|Sse)\(\s*(?:['"]([^'"]*)['"])?\s*\)/g)];
-  const rel = path.relative(root, file).replaceAll('\\', '/');
-  catalog += `## /${prefix}\n\nFuente: [${rel}](../../${rel}). Guards de clase: ${guards || 'ninguno declarado'}.\n\n| Método | Ruta | Roles declarados | Entradas anotadas |\n| --- | --- | --- | --- |\n`;
-  matches.forEach((m, i) => {
-    const end = matches[i + 1]?.index ?? src.length;
-    const segment = src.slice(m.index + m[0].length, end);
-    const roles = segment.match(/@Roles\(([^)]+)\)/)?.[1] || classRoles || 'Sin restricción de rol declarada';
-    const inputs = [...segment.matchAll(/@(Body|Query|Param|UploadedFile)\(([^)]*)\)/g)].map((v) => `${v[1]}(${v[2]})`).join('; ') || '—';
-    const url = '/' + [prefix, m[2]].filter(Boolean).join('/');
-    catalog += `| ${m[1] === 'Sse' ? 'GET (SSE)' : m[1].toUpperCase()} | \`${url}\` | ${cell(roles)} | ${cell(inputs)} |\n`;
-    routes++;
-  });
-  catalog += '\n';
+  const source = ts.createSourceFile(file, fs.readFileSync(file,'utf8'), ts.ScriptTarget.Latest, true);
+  for (const cls of source.statements.filter(ts.isClassDeclaration)) {
+    const decs = calls(cls), controller = decs.find(d => nameOf(d) === 'Controller');
+    if (!controller) continue;
+    controllerClasses++;
+    const prefix = argsOf(controller)[0] || '';
+    const guards = decs.filter(d=>nameOf(d)==='UseGuards').flatMap(argsOf).join(', ');
+    const inheritedRoles = decs.filter(d=>nameOf(d)==='Roles').flatMap(argsOf).join(', ');
+    const rel = path.relative(root,file).replaceAll('\\','/');
+    catalog += '## /'+prefix+'\n\nFuente: ['+rel+'](../../'+rel+'). Clase: '+cls.name.text+'. Guards de clase: '+(guards || 'ninguno declarado')+'.\n\n| Método | Ruta | Roles declarados | Entradas anotadas | Guards de método |\n| --- | --- | --- | --- | --- |\n';
+    for (const method of cls.members.filter(ts.isMethodDeclaration)) {
+      const ds = calls(method), route = ds.find(d=>['Get','Post','Patch','Put','Delete','Sse'].includes(nameOf(d)));
+      if (!route) continue;
+      const verb = nameOf(route), url = '/' + [prefix,argsOf(route)[0]].filter(Boolean).join('/');
+      const roles = ds.filter(d=>nameOf(d)==='Roles').flatMap(argsOf).join(', ') || inheritedRoles || 'Sin restricción de rol declarada';
+      const inputs = method.parameters.flatMap(param=>calls(param)).filter(d=>['Body','Query','Param','UploadedFile'].includes(nameOf(d))).map(d=>nameOf(d)+'('+argsOf(d).join(',')+')').join('; ') || '—';
+      const methodGuards = ds.filter(d=>nameOf(d)==='UseGuards').flatMap(argsOf).join(', ') || '—';
+      catalog += '| '+(verb==='Sse'?'GET (SSE)':verb.toUpperCase())+' | \x60'+url+'\x60 | '+cell(roles)+' | '+cell(inputs)+' | '+cell(methodGuards)+' |\n'; routes++;
+    }
+    catalog += '\n';
+  }
 }
 fs.mkdirSync(path.join(docs, 'referencias'), { recursive: true });
 write('referencias/catalogo-api.md', catalog);
-console.log(JSON.stringify({ models: models.length, relations: relations.length, enums: enums.length, controllers: controllers.length, routes }, null, 2));
+console.log(JSON.stringify({ models: models.length, relations: relations.length, enums: enums.length, controllers: controllerClasses, routes }, null, 2));

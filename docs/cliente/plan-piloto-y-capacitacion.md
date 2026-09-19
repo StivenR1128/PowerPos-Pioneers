@@ -1,6 +1,6 @@
 # Plan piloto y capacitación
 
-Versión 1.1 · 16 de septiembre de 2026. El sistema se ofrecerá a varias empresas, comenzando con **una empresa piloto**. No se ha desplegado. Este plan organiza preparación, ensayo, aceptación y expansión sin asumir dirección pública ni compromisos comerciales.
+Versión documental 1.2 · 17 de septiembre de 2026. El sistema se ofrecerá a varias empresas, comenzando con **una empresa piloto**. No se ha desplegado. Este plan organiza preparación, ensayo, aceptación y expansión sin asumir dirección pública ni compromisos comerciales.
 
 ## 1. Objetivo del piloto
 
@@ -52,7 +52,7 @@ Datos de ensayo: producto a 10000, extra a 2000, receta de 1 pan y 10 gramos de 
 4. Comprueba total 24000 sin descuento y clasifica pago de prueba.
 5. Cocina comprueba cantidad, exclusión y extra; inicia preparación y marca listo.
 6. Supervisor registra entrega desde Dashboard.
-7. Verificar 2 panes y 40 gramos de queso consumidos, cebolla no consumida y 24 puntos para cliente.
+7. Verificar 2 panes y 40 gramos de queso consumidos, cebolla no consumida y puntos según la regla configurada; con programa desactivado, cero puntos.
 8. Revisar ingreso financiero y evitar duplicarlo manualmente.
 9. Simular fallo de impresión sin repetir la venta y describir escalamiento.
 10. Conciliar y cerrar según criterio validado, con registro de resultados.
@@ -93,3 +93,7 @@ Antes de sumar la segunda empresa, verificar inventario separado, clientes/caja 
 ## 9. Decisión final
 
 Resultados posibles: continuar piloto, ampliar con condiciones, repetir ensayo o no aceptar. El acta debe identificar evidencias, defectos abiertos, responsables y decisión de negocio. La documentación no firma ni aprueba por las partes.
+
+## Ensayo de tienda y domicilios (1.2)
+
+Capacitar al administrador en marca, catálogo, zonas y fidelización; al cajero en revisión, cobro, rechazo y cliente identificado; al domiciliario en acceso a sus asignaciones y entrega. Ejecutar un pedido desde móvil y comprobar aviso, aceptación única, tarifa, entrega y seguimiento. Ensayar tienda pausada y precio cambiado. Probar comida elegible y bebidas excluidas con valores definidos por la empresa, no con una tarifa impuesta por PowerPOS.

@@ -2,7 +2,7 @@
 
 ## Identificación
 
-**Nombre:** PowerPOS Pioneers. **Tipo:** aplicación web de gestión gastronómica con orientación SaaS multiempresa. **Usuarios previstos:** restaurantes, cafeterías, panaderías, food trucks y negocios similares. Esta caracterización procede del README y los módulos implementados; no es el resultado de un estudio de mercado.
+**Nombre:** PowerPOS Pioneers. **Tipo:** aplicación web de punto de venta y gestión comercial con orientación SaaS multiempresa. **Usuarios previstos:** restaurantes, bares, supermercados y otros comercios con requerimientos POS. Esta caracterización procede del README y los módulos implementados; no es el resultado de un estudio de mercado.
 
 ## Problema y justificación
 
@@ -12,7 +12,7 @@ Se espera reducir errores de transcripción y facilitar el seguimiento operativo
 
 ## Objetivo general
 
-Desarrollar y mantener una plataforma web que integre ventas, preparación, caja, inventario y seguimiento administrativo de negocios gastronómicos, con usuarios autenticados y separación de información por empresa.
+Desarrollar y mantener una plataforma web que integre ventas, preparación, caja, inventario y seguimiento administrativo de empresas, con usuarios autenticados y separación de información por empresa.
 
 ## Objetivos específicos
 
@@ -26,7 +26,7 @@ Desarrollar y mantener una plataforma web que integre ventas, preparación, caja
 
 ## Alcance observado
 
-Autenticación JWT; catálogo y categorías jerárquicas; recetas de ingredientes; adicionales; pedidos; cocina; caja y eventos; inventario y ajustes; preparaciones y lotes; clientes y puntos; ingresos y egresos; reportes; impresión ESC/POS; notificaciones; configuración; superadministración; auditoría de determinadas operaciones; consumo de empleados; pantalla de cliente y llamado.
+Tienda web automática por empresa, catálogo público, solicitudes de domicilio, bandeja de cajero, asignación y seguimiento de entregas; fidelización configurable por empresa. Autenticación JWT; catálogo y categorías jerárquicas; recetas de ingredientes; adicionales; pedidos; cocina; caja y eventos; inventario y ajustes; preparaciones y lotes; clientes y puntos; ingresos y egresos; reportes; impresión ESC/POS; notificaciones; configuración; superadministración; auditoría de determinadas operaciones; consumo de empleados; pantalla de cliente y llamado.
 
 La separación multiempresa es **parcial**: ingredientes y movimientos de inventario no tienen un propietario empresarial directo; algunos accesos por identificador tampoco filtran empresa. La existencia de planes y permisos no demuestra restricciones completas en el servidor.
 
@@ -36,7 +36,7 @@ La separación multiempresa es **parcial**: ingredientes y movimientos de invent
 - Procesamiento bancario de pagos: los métodos de pago se registran, sin pasarela identificada.
 - Contabilidad de partida doble, liquidación de nómina o cuentas por pagar. `NOMINA` es una categoría de egreso.
 - Operación sin conexión y sincronización posterior.
-- Gestión de rutas de reparto: existe el rol DOMICILIARIO, sin módulo de logística identificado.
+- Optimización de rutas y geocodificación: hay asignación/seguimiento de domicilios, sin cálculo de rutas o distancias.
 - Control de vencimientos, asignación de ventas a lotes y descuento de porciones preparadas.
 - Infraestructura productiva desplegada, disponibilidad garantizada o recuperación comprobada.
 
@@ -57,7 +57,7 @@ Esta tabla define responsabilidades previstas. Los permisos reales de API están
 
 ## Supuestos y restricciones
 
-El navegador accede a una API central y esta a PostgreSQL. El entorno local usa API en 3000 y frontend en 3001. El frontend contiene direcciones `localhost` fijas. El sistema usa nombres y formato monetario colombiano, pero no hay un campo de moneda por transacción: la moneda operativa debe acordarse con el negocio. Las horas del servidor influyen en cierres y reportes.
+El navegador accede a una API central y esta a PostgreSQL. El entorno local usa API en 3000 y frontend en 3001. El cliente HTTP principal y la tienda usan `NEXT_PUBLIC_API_URL`; quedan referencias locales de SSE/impresión por revisar antes del despliegue. El sistema usa nombres y formato monetario colombiano, pero no hay un campo de moneda por transacción: la moneda operativa debe acordarse con el negocio. Las horas del servidor influyen en cierres y reportes.
 
 ## Glosario
 
@@ -78,3 +78,9 @@ El navegador accede a una API central y esta a PostgreSQL. El entorno local usa 
 ## Fuentes
 
 [README original](../README.md), [módulos del backend](../api/src/app.module.ts), [esquema de datos](../api/prisma/schema.prisma) y [navegación](../web/components/Navbar.tsx).
+
+## Tienda, entrega y presencia comercial
+
+Cada empresa obtiene una página en `/tienda/{slug}` con su marca y productos. Su catálogo se mantiene desde el POS. La landing de `landing/` promociona PowerPOS; las tiendas se sirven desde la aplicación Next.js y requieren el despliegue de API y web. Se ofrece a restaurantes, bares, supermercados y comercios, con alcance específico verificado durante la demo.
+
+La empresa define cuánto comprar para ganar un punto y cuánto descuento representa al canjearlo. El programa inicia desactivado, conserva los saldos anteriores y permite excluir categorías y productos. La base elegible recibe su parte proporcional de los descuentos; domicilio excluido y redondeo hacia abajo. No hay valor obligatorio.

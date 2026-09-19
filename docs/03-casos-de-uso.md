@@ -68,7 +68,7 @@ Mapa funcional representado como diagrama de flujo; no pretende ser notación UM
 6. Emite evento, solicita notificación y devuelve pedido.
 7. La interfaz gestiona recibo, comanda y cajón según configuración.
 
-**Alternativas:** caja cerrada, vendedor no autorizado, producto indisponible o adicional ajeno: rechazo. **Resultado normal:** venta identificada por número. **Límite:** los pasos de persistencia no están dentro de una transacción global; un error tardío puede dejar pedido creado. Consultar antes de reintentar.
+**Alternativas:** caja cerrada, vendedor no autorizado, producto indisponible o adicional ajeno: rechazo. **Resultado normal:** venta identificada por número. **Integridad:** pedido, stock, ingreso, canje y acumulación se guardan en una transacción. Si se pierde la respuesta de una venta POS, consultar antes de repetirla: su endpoint aún no tiene clave de idempotencia.
 
 ## CU-05. Preparar y entregar
 
@@ -159,7 +159,7 @@ sequenceDiagram
   opt Cliente y puntos positivos
     API->>DB: Incrementa puntos
   end
-  Note over API,DB: Operaciones separadas, sin transacción global
+  Note over API,DB: Transacción: pedido, stock, ingreso y puntos; commit o rollback
   API->>EVT: Emite CREADO para empresa
   EVT-->>KDS: SSE
   API->>NOT: Solicita alerta
@@ -182,3 +182,23 @@ stateDiagram-v2
 ```
 
 Es un flujo de negocio propuesto para acordar. El código permite actualizar el enum sin comprobar el estado anterior; las condiciones de anulación y su reversión están pendientes.
+
+## CU-11. Administrar la tienda
+
+**Actor:** ADMIN_EMPRESA. **Precondición:** empresa registrada. Abrir Mi tienda; personalizar enlace, título, descripción, portada, color y WhatsApp; mantener logo en Configuración y catálogo en Productos; definir sucursal, mínimo y zonas. Activar recepción solo después de revisar tarifas y operación. Rechazar enlace repetido o sucursal ajena. **Resultado:** página de empresa lista en su ruta del despliegue web.
+
+## CU-12. Comprar desde la web
+
+**Actor:** comprador público. Consultar catálogo, agregar cantidades enteras, indicar datos de entrega y zona, revisar total y autorizar uso de datos. El servidor valida catálogo y precios. Crea RECIBIDO y devuelve referencia para seguimiento. **Alternativas:** tienda pausada, producto indisponible, zona no atendida o precio cambiado: rechazo controlado. Reintentar la misma clave no duplica la solicitud. No afecta caja, inventario ni puntos antes de revisión.
+
+## CU-13. Revisar y despachar un domicilio
+
+**Actores:** cajero, administrador/gerente y domiciliario asignado. Revisar bandeja; contactar al comprador si es necesario y verificar medio de pago. Opcionalmente asociar cliente identificado. Aceptar con caja abierta convierte la solicitud en una venta única. Alternativa: rechazar RECIBIDO con motivo. Asignar repartidor activo de la misma empresa y marcar EN_CAMINO. Confirmar ENTREGADO actualiza la entrega y el pedido POS. Las solicitudes web RECIBIDO se pueden rechazar sin venta. Una venta web aceptada o con movimientos de puntos bloquea la anulación directa y requiere conciliación. No existe todavía un flujo automático de devolución que revierta ingreso e inventario; no presentar ANULADO como reembolso.
+
+## CU-14. Configurar y canjear fidelización
+
+**Actor configurador:** ADMIN_EMPRESA. La empresa define cuánto comprar para ganar un punto y cuánto descuento representa al canjearlo. El programa inicia desactivado, conserva los saldos anteriores y permite excluir categorías y productos. La base elegible recibe su parte proporcional de los descuentos; domicilio excluido y redondeo hacia abajo. No hay valor obligatorio. **Actor venta:** cajero autorizado. Seleccionar cliente identificado, elegir puntos a canjear y confirmar descuento. Servidor verifica y descuenta saldo en la misma transacción de venta; saldo insuficiente revierte la operación. En domicilio público el cajero vincula identidad al aceptar; no se confía en un teléfono público para acceder a puntos.
+
+## CU-15. Consultar por WhatsApp
+
+**Actor:** comprador. Elige WhatsApp en la tienda; se abre conversación con el número configurado y texto del carrito. El comprador decide enviarlo. El comercio confirma disponibilidad y domicilio por ese canal y registra la venta por su procedimiento. La conversación no crea registros automáticos en PowerPOS.

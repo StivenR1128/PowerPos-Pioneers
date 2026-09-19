@@ -2,7 +2,7 @@
 
 ## Estado de validación
 
-Esta entrega verifica documentación contra código y, en la revisión 1.1, ejecuta ensayos con una base PostgreSQL aislada y datos sintéticos. **No acredita aprobación productiva del sistema.** Se ejecutaron dos pruebas unitarias, build de backend y 13 escenarios de servicios: diez aprobados y tres brechas confirmadas. Se probaron migraciones y restauración únicamente en bases temporales. No se utilizaron datos de cliente ni se enviaron notificaciones reales. Ver [informe y alcance exacto](cliente/informe-validacion.md).
+La revisión 1.2 verifica documentación contra código y conserva evidencia de 15 escenarios HTTP con PostgreSQL aislado, dos pruebas unitarias existentes, compilación de API/web y comprobación de pantallas en navegador. No constituye aprobación productiva. Los 13 escenarios de servicios de 1.1 son evidencia histórica; sus brechas se reclasifican en el informe actualizado. Ver [informe](cliente/informe-validacion.md).
 
 Se encontraron pruebas en `api/src/app.controller.spec.ts`, `api/src/impresion/impresion.service.spec.ts` y `api/test/app.e2e-spec.ts`. Cubren un saludo del controlador, impresión por socket simulado y ruta raíz e2e; no acreditan el ciclo de venta ni aislamiento multiempresa.
 
@@ -10,7 +10,7 @@ Se encontraron pruebas en `api/src/app.controller.spec.ts`, `api/src/impresion/i
 
 Crear ambiente aislado con dos empresas A/B, sucursales y cuentas de cada rol, catálogo mínimo y existencias conocidas. Usar únicamente datos sintéticos. Deshabilitar correo/Twilio reales y usar impresora simulada hasta prueba controlada de hardware. Controlar tareas cron y hora para que no cierren caja ni disparen mensajes durante las pruebas. Registrar commit y cambios locales incluidos, versiones y migraciones aplicadas.
 
-Datos de cálculo sugeridos: producto a 10000, adicional a 2000, dos unidades con un adicional por unidad y descuento de 1000. Esperado: subtotal 24000, total 23000 y 23 puntos si hay cliente. Para stock, usar inicialmente ingredientes sin factor de conversión; probar conversiones en un caso separado.
+Datos de cálculo sugeridos: producto a 10000, adicional a 2000, dos unidades con un adicional por unidad y descuento de 1000. Esperado: subtotal 24000, total 23000; los puntos dependen de la configuración explícita de prueba, no de una regla fija. Para stock, usar inicialmente ingredientes sin factor de conversión; probar conversiones en un caso separado.
 
 ## Casos de prueba
 
@@ -30,17 +30,17 @@ La tabla es el plan completo. Los escenarios AT del informe cubren parcialmente 
 | CP-10 | RF-13, RF-14 | Abrir caja, intentar segunda, vender por distintos medios y cerrar con diferencia >1000. | Una caja; cálculos actuales identificados y alerta registrada. |
 | CP-11 | RF-15 | Registrar entrada, salida y ajuste con/sin conversión. | Saldo y movimiento coherentes, alerta bajo mínimo. |
 | CP-12 | RF-16, RF-17 | Crear preparación/lote, consultar porciones y vender producto asociado. | Producción registrada; señalar que descuento de porciones aún no existe. |
-| CP-13 | RF-18 | Asociar cliente a venta de 23000; sumar/redimir puntos y consultar historial. | Incremento de 23; canje insuficiente rechazado. |
+| CP-13 | RF-18 | Asociar cliente a venta de 23000; sumar/redimir puntos y consultar historial. | Sin activar: cero puntos nuevos. Con reglas explícitas: cálculo elegible y canje de saldo correcto. |
 | CP-14 | RF-19, RF-20 | Crear venta e ingreso/egreso manual; consultar períodos/reportes. | Totales conciliables con registros del período y empresa. |
 | CP-15 | RF-21 | Simular socket; probar equipo real sin emitir venta; desconectar impresora. | Impresión confirmada solo cuando procede y fallo visible según configuración. |
 | CP-16 | RF-22 | Abrir POS/cliente y cocina/llamado en mismo navegador; probar terminal separado. | Sincronización local; documentar ausencia de sincronización remota. |
 | CP-17 | RF-23 | Usar proveedor de prueba; disparar alerta y cumpleaños con/sin configuración. | Evidencia de resultado sin enviar mensajes a personas reales. |
 | CP-18 | RF-24, RF-26 | Usar SUPERADMIN y un usuario común para rutas globales; cambiar capacidad. | Solo rol autorizado; auditoría en operaciones instrumentadas. |
 | CP-19 | RF-25 | Registrar consumo habilitado/deshabilitado y con rol cajero. | Solo supervisor habilitado; stock disminuye sin venta ni ingreso. |
-| CP-20 | RF-27 | Anular venta y revisar inventario, puntos e ingreso. | Reversión integral requerida; comportamiento actual previsto: solo cambia estado. |
+| CP-20 | RF-27 | Anular venta y revisar inventario, puntos e ingreso. | Reversión integral pendiente; comprobar bloqueo de anulaciones web/con puntos y no reapertura. |
 | CP-21 | RF-28 | Evaluar bandera y flujo completo de emisión. | No aceptar emisión como implementada hasta integración y prueba de proveedor. |
 | CP-22 | RNF-01, RNF-02 | Probar lectura/escritura con IDs cruzados en clientes, inventario, caja y catálogo; invocar rutas con roles no autorizados. | Cero acceso indebido; fallos bloquean aceptación multiempresa. |
-| CP-23 | RNF-03 | Inducir fallo entre pedido, stock, ingreso y puntos en ambiente aislado. | Todo o nada; registrar persistencia parcial actual. |
+| CP-23 | RNF-03 | Inducir fallo entre pedido, stock, ingreso y puntos en ambiente aislado. | Todo o nada en venta; ampliar fallos inducidos en cada escritura. |
 | CP-24 | RNF-03, RNF-06 | Crear ventas simultáneas en dos sucursales y ventas repetidas por reintento. | Numeración única, sin pérdida/duplicación; medir respuesta y colisiones. |
 | CP-25 | RNF-07 | Respaldar DB/uploads y restaurar en destino aislado. | Datos consistentes y tiempo/pérdida medidos. |
 | CP-26 | RNF-05, RNF-09 | Revisar HTTPS, CORS, secretos, expiración y navegadores seleccionados. | Configuración segura y funciones soportadas documentadas. |
@@ -84,3 +84,16 @@ Entrada: ambiente aislado, datos restaurables, configuración registrada y respo
 | Estado | Pendiente / aprobado / fallido / bloqueado |
 | Incidencia y responsable | Pendiente |
 | Reprueba y aprobación | Pendiente |
+
+## Trazabilidad añadida en 1.2
+
+| Caso | Requisitos | Caso de uso | Verificación |
+| --- | --- | --- | --- |
+| CP-29 | RF-29, RF-30 | CU-11, CU-12 | Tienda automática, catálogo aislado, edición autorizada y precio actualizado. |
+| CP-30 | RF-31, RF-36 | CU-12 | Solicitud pública, ID ajeno, cantidad inválida, total manipulado, reintento idempotente y seguimiento. |
+| CP-31 | RF-32, RNF-03 | CU-13 | Caja cerrada sin venta; dos aceptaciones concurrentes crean una sola venta. |
+| CP-32 | RF-33 | CU-13 | Asignación a repartidor propio y entrega sincronizada; prohibir acceso de otra empresa. |
+| CP-33 | RF-34 | CU-15 | WhatsApp correcto y texto del carrito; no afirmar envío/importación automática. |
+| CP-34 | RF-35, RF-18 | CU-14 | Regla desactivada inicial, exclusiones, canje proporcional, saldo insuficiente y canjes concurrentes. |
+
+El script api/test/tienda-integracion.cjs verifica 15 escenarios concretos de estos casos, no todas sus combinaciones. Requiere TIENDA_TEST_DATABASE_URL apuntando a la base aislada powerpos_store_test en 127.0.0.1:55439. Los ensayos de navegador comprobaron carrito, seguimiento tras recarga, bandeja, configuración y ancho móvil; no sustituyen evaluación de accesibilidad o carga exhaustiva.

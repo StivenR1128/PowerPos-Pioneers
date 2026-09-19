@@ -208,6 +208,6 @@ erDiagram
   Empresa |o..o{ Auditoria : "empresaId"
   Usuario |o..o{ Auditoria : "usuarioId"
   Empresa ||..o{ PedidoWeb : "empresaId"
-  Pedido |o..o{ PedidoWeb : "pedidoId"
+  Pedido |o..o| PedidoWeb : "pedidoId"
   Sucursal ||..o{ PedidoWeb : "sucursalId"
   Usuario |o..o{ PedidoWeb : "repartidorId"
