@@ -67,7 +67,7 @@ export default function CocinaPage() {
     if (usuario.modoPreparacion === 'COMANDAS') { router.replace('/pos'); return; }
     cargarPedidos();
     const intervalo = setInterval(cargarPedidos, 5000);
-    const stream = token ? new EventSource(`http://localhost:3000/pedidos/stream?token=${encodeURIComponent(token)}`) : null;
+    const stream = token ? new EventSource(`${api.defaults.baseURL}/pedidos/stream?token=${encodeURIComponent(token)}`) : null;
     if (stream) stream.onmessage = () => cargarPedidos();
     return () => {
       clearInterval(intervalo);
